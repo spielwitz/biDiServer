@@ -1,0 +1,11 @@
+.settings
+.DS*
+bin
+jars
+README.txt
+TextPropertiesBuilder.prop
+ServerData*
+Server.conf
+TestClientData*
+LoadTestServerData*
+releases
