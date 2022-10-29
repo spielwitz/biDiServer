@@ -151,7 +151,7 @@ class TextProperties
 	}
 
 	/**
-	   * The server requires at least build {0}. You are using build {1}.
+	   * The server requires at least build {0}. The client is using build {1}.
 	   */
 	static TextProperty IncomptabileBuilds(String arg0, String arg1) {
 		return new TextProperty("IncomptabileBuilds", new String[] {arg0, arg1});
