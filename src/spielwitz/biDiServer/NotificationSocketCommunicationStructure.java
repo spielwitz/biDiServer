@@ -20,5 +20,5 @@ package spielwitz.biDiServer;
 class NotificationSocketCommunicationStructure
 {
 	Notification notification;
-	boolean shutdownServer;
+	boolean closeSocket;
 }

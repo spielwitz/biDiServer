@@ -49,7 +49,7 @@ public abstract class Client
 	public static final int CLIENT_SOCKET_TIMEOUT = 10;
 	
 	/**
-	 * Get the client build.
+	 * Get the client build. Return null, if you want to disable build checks.
 	 * @return The client build
 	 */
 	protected abstract String getBuild();
@@ -450,7 +450,8 @@ public abstract class Client
 				
 				RequestMessageBase requestMessageUserId = 
 						new RequestMessageBase(
-								sessionId, 
+								sessionId,
+								getBuild(),
 								new Payload(this.config.getUserId()));
 								
 				CryptoLib.sendStringRsaEncrypted(
@@ -470,9 +471,46 @@ public abstract class Client
 							(ResponseMessage) ResponseMessage.deserialize(
 									CryptoLib.receiveStringRsaEncrypted(
 											in, 
-											this.config.getUserPrivateKeyObject()));									
+											this.config.getUserPrivateKeyObject()));	
 					
 					PayloadResponseMessageUserId payloadUserId = (PayloadResponseMessageUserId) responseMessageUserId.getPayloadObject();
+					
+					if (payloadUserId.getServerClientBuildCheck() != null)
+					{
+						TextProperty textPropertyError = null;
+						
+						if (!payloadUserId.getServerClientBuildCheck().areBuildsCompatible())
+						{
+							textPropertyError = TextProperties.IncomptabileBuilds(
+									payloadUserId.getServerClientBuildCheck().getMinimumComptabileBuild(),
+			    					getBuild());
+						}
+						else
+						{
+							ServerClientBuildCheckResult serverClientBuildCheck = 
+									this.checkServerClientBuild(responseMessageUserId.getServerBuild());
+							
+							if (!serverClientBuildCheck.areBuildsCompatible())
+							{
+								textPropertyError = TextProperties.ServerBuildOutdated(
+										responseMessageUserId.getServerBuild(),
+		    							serverClientBuildCheck.getMinimumComptabileBuild());
+							}
+						}
+						
+					    if (textPropertyError != null)
+					    {
+					    	responseMessage = new ResponseMessage(
+									false,
+									TextProperties.getMessageText(textPropertyError),
+									null);
+					    	responseMessage.setServerBuild(this.getBuild());
+					    	
+					    	kkSocket.close();
+					    	
+					    	return responseMessage;
+					    }
+					}
 					
 					sessionId = payloadUserId.isSessionValid() ? sessionId : CryptoLib.NULL_UUID;
 					token = payloadUserId.getToken();
@@ -542,22 +580,6 @@ public abstract class Client
 		    	
 		    	return responseMessage;
 			}
-			
-			ServerClientBuildCheckResult serverClientBuildCheck = this.checkServerClientBuild(responseMessage.getServerBuild());
-			
-		    if (!serverClientBuildCheck.areBuildsCompatible())
-		    {
-		    	responseMessage = new ResponseMessage(
-						false,
-						TextProperties.getMessageText(
-							TextProperties.ServerBuildOutdated(
-	    							responseMessage.getServerBuild(),
-	    							serverClientBuildCheck.getMinimumComptabileBuild())),
-						null);
-		    	responseMessage.setServerBuild(this.getBuild());
-		    	
-		    	return responseMessage;
-		    }
 		}
 		
 		return responseMessage;

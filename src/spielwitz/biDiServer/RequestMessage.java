@@ -27,7 +27,6 @@ class RequestMessage extends RequestMessageBase
 	private RequestMessageType type;
 	
 	private String token;
-	private String clientBuild;
 	
 	/**
 	 * Constructor.
@@ -39,11 +38,10 @@ class RequestMessage extends RequestMessageBase
 	 */
 	RequestMessage(RequestMessageType type, String sessionId, String token, String clientBuild, Payload payload)
 	{
-		super(sessionId, payload);
+		super(sessionId, clientBuild, payload);
 		
 		this.type = type;
 		this.token = token;
-		this.clientBuild = clientBuild;
 	}
 	
 	/**
@@ -62,14 +60,5 @@ class RequestMessage extends RequestMessageBase
 	String getToken()
 	{
 		return token;
-	}
-
-	/**
-	 * Get the client build.
-	 * @return The client build.
-	 */
-	String getClientBuild()
-	{
-		return clientBuild;
 	}
 }

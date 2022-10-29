@@ -221,6 +221,7 @@ public abstract class Server
 		}
 		
 		this.closeServerSocket();
+		System.exit(0);
 	}
 	
 	/**
@@ -1296,8 +1297,6 @@ public abstract class Server
 			return;
 		}
 		
-		this.shutdown = true;
-		
 		synchronized(this.notificationThreads)
 		{
 			for (NotificationThread t: this.notificationThreads.values())
@@ -1307,6 +1306,7 @@ public abstract class Server
 		}
 		
 		this.closeServerSocket();
+		this.shutdown = true;
 	}
 	
 	private void disconnect(String userId)
@@ -1391,6 +1391,8 @@ public abstract class Server
 			String sessionId = null;
 			OutputStream out = null;
 			DataInputStream in = null;
+			ServerClientBuildCheckResult serverClientBuildCheck = null;
+			String clientBuild = null;
 			
 			boolean establishNotificationSocket = false;
 			
@@ -1421,6 +1423,12 @@ public abstract class Server
 			    	
 			    	this.closeSocket();
 				    return;
+			    }
+			    
+			    if (getBuild() != null && reqMsgUserId.getClientBuild() != null)
+			    {
+			    	serverClientBuildCheck = checkServerClientBuild(reqMsgUserId.getClientBuild());
+			    	clientBuild = reqMsgUserId.getClientBuild(); 
 			    }
 			}
 			catch (Exception x)
@@ -1468,10 +1476,16 @@ public abstract class Server
 				{
 					PayloadResponseMessageUserId payload = new PayloadResponseMessageUserId(
 																token,
-																ciphers != null);
+																ciphers != null,
+																serverClientBuildCheck);
 					
 					ResponseMessage respMsg = new ResponseMessage(
-													new Payload(payload));
+													new Payload(payload),
+													new ResponseInfo(
+															serverClientBuildCheck == null ||
+															serverClientBuildCheck.areBuildsCompatible())
+													);
+					respMsg.setServerBuild(getBuild());
 
 					CryptoLib.sendStringRsaEncrypted(
 							out, 
@@ -1479,7 +1493,8 @@ public abstract class Server
 							user.getUserPublicKeyObject());
 				}
 				
-				if (ciphers == null)
+				if (ciphers == null &&
+					!(serverClientBuildCheck != null && !serverClientBuildCheck.areBuildsCompatible()))
 				{
 					ciphers = CryptoLib.diffieHellmanKeyAgreementServer(in, out);
 					sessionId = ciphers.sessionId;
@@ -1500,6 +1515,24 @@ public abstract class Server
 						null,
 						null,
 						TextProperties.getMessageText(TextProperties.DiffieHellmanKeyExchangeFailed(x.getMessage())));
+				
+				this.closeSocket();
+				return;
+			}
+			
+			if (serverClientBuildCheck != null && !serverClientBuildCheck.areBuildsCompatible())
+			{
+				getLog().logMessage(
+						LogEventId.V1,
+						LogLevel.Verbose,
+						this.ipAddress,
+						userId,
+						null,
+						null,
+						TextProperties.getMessageText(
+								TextProperties.IncomptabileBuilds(
+				    					serverClientBuildCheck.getMinimumComptabileBuild(),
+				    					clientBuild)));
 				
 				this.closeSocket();
 				return;
@@ -1532,44 +1565,30 @@ public abstract class Server
 			
 			MessageProcessingContainer container = new MessageProcessingContainer(userId, requestMessage); 
 		    
-			ServerClientBuildCheckResult serverClientBuildCheck = checkServerClientBuild(requestMessage.getClientBuild());
-			
-		    if (!serverClientBuildCheck.areBuildsCompatible())
-		    {
-		    	container.setResponseMessage(new ResponseMessage(
-		    			false,
-		    			null,
-		    			TextProperties.IncomptabileBuilds(
-		    					serverClientBuildCheck.getMinimumComptabileBuild(),
-		    					requestMessage.getClientBuild())));
-		    }
-		    else
-		    {
-		    	try
-		    	{
-			    	onRequestMessageReceived(container);
-		    	}
-		    	catch (Exception x)
-		    	{
-		    		String errorMessage = this.getErrorMessageFromException(x);
-		    		
-		    		container.setResponseMessage(new ResponseMessage(
-		    				false,
-		    				null,
-		    				TextProperties.ApplicationError(errorMessage)));
-		    		
-					getLog().logMessage(
-							LogEventId.C2,
-							LogLevel.Critical,
-							this.ipAddress,
-							userId,
-							requestMessage.getType().toString(),
-							requestMessage.serialize(),
-							TextProperties.getMessageText(TextProperties.ApplicationError(errorMessage)));
+	    	try
+	    	{
+		    	onRequestMessageReceived(container);
+	    	}
+	    	catch (Exception x)
+	    	{
+	    		String errorMessage = this.getErrorMessageFromException(x);
+	    		
+	    		container.setResponseMessage(new ResponseMessage(
+	    				false,
+	    				null,
+	    				TextProperties.ApplicationError(errorMessage)));
+	    		
+				getLog().logMessage(
+						LogEventId.C2,
+						LogLevel.Critical,
+						this.ipAddress,
+						userId,
+						requestMessage.getType().toString(),
+						requestMessage.serialize(),
+						TextProperties.getMessageText(TextProperties.ApplicationError(errorMessage)));
 
-					afterResponseMessageSent(container);
-		    	}
-		    }
+				afterResponseMessageSent(container);
+	    	}
 		    
 		    if (container.getResponseMessage() == null)
 		    {
@@ -1764,7 +1783,7 @@ public abstract class Server
 					{
 						this.commStruct.wait();
 						
-						if (this.commStruct.shutdownServer)
+						if (this.commStruct.closeSocket)
 						{
 							closeSocket = true;
 						}
@@ -1829,7 +1848,7 @@ public abstract class Server
 		{
 			synchronized(this.commStruct)
 			{
-				this.commStruct.shutdownServer = true;
+				this.commStruct.closeSocket = true;
 				this.commStruct.notify();
 			}
 		}

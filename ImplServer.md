@@ -133,9 +133,9 @@ protected MyServer(ServerConfiguration config, String homeDir) throws ServerExce
 
 ## `getBuild()` `checkServerClientBuild(String clientBuild)`
 
-You may want to compare if the server and a client run on compatible builds. In method `getBuild()`, return the server build as a string.
+You may want to compare if the server and a client run on compatible builds. In method `getBuild()`, return the server build as a string. If you want to disable build comparisons, return null.
 
-Method `checkServerClientBuild(String clientBuild)` is called at runtime when a request from a client comes in. You can compare the client build with the server build. As a result, you return an instance of class [`ServerClientBuildCheckResult​`](src/spielwitz/biDiServer/ServerClientBuildCheckResult.java). This return object contains the information whether the builds are compatible, and, if they are not compatible, pass the information about the minimum required build to the client. If the builds are not compatible, the client request is rejected.
+If the implementations of `getBuild()` of both the server and the client return a value which is not null, then method `checkServerClientBuild(String clientBuild)` is called at runtime when a request from a client comes in. You can compare the client build with the server build. As a result, you return an instance of class [`ServerClientBuildCheckResult​`](src/spielwitz/biDiServer/ServerClientBuildCheckResult.java). This return object contains the information whether the builds are compatible, and, if they are not compatible, pass the information about the minimum required build to the client. If the builds are not compatible, the client request is rejected.
 
 If your client-server implementation does not require build checks, you can implement the two methods as follows:
 
