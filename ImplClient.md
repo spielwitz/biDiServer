@@ -81,7 +81,7 @@ If your client-server implementation does not require build checks, you can impl
 @Override
 protected ServerClientBuildCheckResult checkServerClientBuild(String serverBuild)
 {
-	return new ServerClientBuildCheckResult(true, null);
+	return null;
 }
 
 @Override
