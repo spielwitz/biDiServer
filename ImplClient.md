@@ -71,9 +71,9 @@ public TestClient(ClientConfiguration conf, boolean establishNotificationSocket,
 ```
 ## `getBuild()` `checkServerClientBuild(String serverBuild)`
 
-You may want to compare if the server and a client run on compatible builds. In method `getBuild()`, return the client build as a string.
+You may want to compare if the server and a client run on compatible builds. In method `getBuild()`, return the client build as a string. If you want to disable build comparisons, return null.
 
-Method `checkServerClientBuild(String clientBuild)` is called at runtime when a response from the server is received. You can compare the client build with the server build. As a result, you return an instance of class [`ServerClientBuildCheckResult​`](src/spielwitz/biDiServer/ServerClientBuildCheckResult.java). This return object contains the information whether the builds are compatible, and, if they are not compatible, pass the information about the minimum required build. If the builds are not compatible, the server response is marked as not successful.
+If the implementations of `getBuild()` of both the server and the client return a value which is not null, then method `checkServerClientBuild(String clientBuild)` is called at runtime when a response from the server is received. You can compare the client build with the server build. As a result, you return an instance of class [`ServerClientBuildCheckResult​`](src/spielwitz/biDiServer/ServerClientBuildCheckResult.java). This return object contains the information whether the builds are compatible, and, if they are not compatible, pass the information about the minimum required build. If the builds are not compatible, the server response is marked as not successful.
 
 If your client-server implementation does not require build checks, you can implement the two methods as follows:
 

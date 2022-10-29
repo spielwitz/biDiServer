@@ -26,16 +26,22 @@ class PayloadResponseMessageUserId extends PayloadMessageBase
 {
 	private String token;
 	private boolean sessionValid;
+	private ServerClientBuildCheckResult serverClientBuildCheck;
 	
 	/**
 	 * Constructor.
 	 * @param token Token
 	 * @param sessionValid True, if the existing session is valid
+	 * @param ServerClientBuildCheckResult Result of the build compatibility check on server side
 	 */
-	PayloadResponseMessageUserId(String token, boolean sessionValid)
+	PayloadResponseMessageUserId(
+			String token, 
+			boolean sessionValid, 
+			ServerClientBuildCheckResult serverClientBuildCheck)
 	{
 		this.token = token;
 		this.sessionValid = sessionValid;
+		this.serverClientBuildCheck = serverClientBuildCheck;
 	}
 
 	/**
@@ -54,5 +60,14 @@ class PayloadResponseMessageUserId extends PayloadMessageBase
 	public boolean isSessionValid()
 	{
 		return sessionValid;
+	}
+
+	/**
+	 * Get the result of the build compatibility check on server side.
+	 * @return Result of the build compatibility check on server side
+	 */
+	ServerClientBuildCheckResult getServerClientBuildCheck()
+	{
+		return serverClientBuildCheck;
 	}
 }

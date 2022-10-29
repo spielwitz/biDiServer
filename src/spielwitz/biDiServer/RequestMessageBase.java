@@ -25,16 +25,18 @@ package spielwitz.biDiServer;
 class RequestMessageBase extends SerializableMessage
 {
 	private String sessionId;
+	private String clientBuild;
 	
 	/**
 	 * Constructor.
 	 * @param sessionId Session ID
 	 * @param payload Message payload
 	 */
-	RequestMessageBase(String sessionId, Payload payload)
+	RequestMessageBase(String sessionId, String clientBuild, Payload payload)
 	{
 		super(payload);
 		this.sessionId = sessionId;
+		this.clientBuild = clientBuild;
 	}
 
 	/**
@@ -44,5 +46,14 @@ class RequestMessageBase extends SerializableMessage
 	String getSessionId()
 	{
 		return sessionId;
+	}
+	
+	/**
+	 * Get the client build.
+	 * @return The client build.
+	 */
+	String getClientBuild()
+	{
+		return clientBuild;
 	}
 }

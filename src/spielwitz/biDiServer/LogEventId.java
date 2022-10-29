@@ -42,5 +42,7 @@ enum LogEventId
 	W1,
 	W2,
 	
+	V1,
+	
 	CUSTOM
 }
