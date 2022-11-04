@@ -99,11 +99,6 @@ public abstract class Client
 	{
 		if (this.establishNotificationSocket)
 		{
-			if (this.notificationReceiverThread == null)
-			{
-				this.sendRequestMessage(RequestMessageType.ESTABLISH_NOTIFICATION_SOCKET, null);
-			}
-			
 			this.reconnectThread = this.new ClientReconnectThread();
 			this.reconnectThread.start();
 		}
@@ -649,14 +644,14 @@ public abstract class Client
 		{
 			do
 			{
+				reconnectCheck();
+				
 				try {
 					Thread.sleep(10000);
 				} catch (Exception e)
 				{
 					break;
 				}
-				
-				reconnectCheck();
 				
 			} while (true);
 		}
