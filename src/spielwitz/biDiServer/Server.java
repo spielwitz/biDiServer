@@ -1080,7 +1080,7 @@ public abstract class Server
 			
 			User user = this.getUser(userId);
 				
-			if (user == null)
+			if (user == null || !user.isActive())
 			{
 				continue;
 			}
