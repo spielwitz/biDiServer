@@ -278,12 +278,6 @@ public class Notification
 						this.id
 				).toString();
 
-		counter++;
-		if (counter > 9999)
-		{
-			counter = 0;
-		}
-		
 		try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName)))
 		{
 			String text = this.serialize();
