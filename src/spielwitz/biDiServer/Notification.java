@@ -38,23 +38,115 @@ import com.google.gson.Gson;
  */
 public class Notification
 {
-	private boolean ping;
-	private String sender;
-	private ArrayList<String> recipients;
-	private long dateCreated;
-	private Payload payloadEncrypted;
-
 	private static int counter;
 	private static Gson serializer = new Gson();
+	private static Object counterLock = new Object();
 	
+	static void deleteFile(String pathToNotificationsFolder, String userId, String id)
+	{
+		File dir = Paths.get(pathToNotificationsFolder, userId).toFile();
+		
+		if (!dir.exists())
+		{
+			dir.mkdir();
+		}
+		
+		File file = new File( 
+				Paths.get(
+						pathToNotificationsFolder, 
+						userId,
+						id
+				).toString());
+		
+		if (file.exists())
+		{
+			try
+			{
+				file.delete();
+			}
+			catch (Exception x) {}
+		}
+	}
 	/**
-	 * Constructor for creating a ping notification without payload. The notification is not dispatched to any users user.
+	 * Get a notification from a JSON string.
+	 * @param jsonString The JSON string
+	 * @return The notification
+	 */
+	static Notification deserialize(String jsonString)
+	{
+		try
+		{
+			return serializer.fromJson(jsonString, Notification.class);
+		}
+		catch (Exception x)
+		{
+			return null;
+		}
+	}
+
+	/**
+	 * Get all notifications of a user currently stored in files.
+	 * @param pathToNotificationsFolder Folder path on the server where notifications are stored
+	 * @param userId The user ID of the recipient of the message
+	 * @return All stored notifications of a user
+	 */
+	static ArrayList<Notification> getAllNotificationsMessagesOfUserFromFile(String pathToNotificationsFolder, String userId)
+	{
+		ArrayList<Notification> notifications = new ArrayList<Notification>();
+		
+		File dir = Paths.get(pathToNotificationsFolder, userId).toFile();
+		
+		if (!dir.exists())
+		{
+			return notifications;
+		}
+		
+		String[] fileNames = dir.list();
+		Arrays.sort(fileNames);
+		
+		for (String fileName: fileNames)
+		{
+			File file = Paths.get(
+					pathToNotificationsFolder, 
+					userId,
+					fileName).toFile();
+			
+			Notification notification = null;
+			
+			try (BufferedReader br = new BufferedReader(
+					new FileReader(file)))
+			{
+				String json = br.readLine();
+				notification = Notification.deserialize(json);
+				
+				if (notification != null)
+					notifications.add(notification);
+			} catch (Exception e)
+			{
+			}
+		}
+		
+		return notifications;
+	}
+	private boolean ping;
+	private String sender;
+	
+	private ArrayList<String> recipients;
+
+	private String id;
+
+	private long dateCreated;
+
+	private Payload payloadEncrypted;
+
+	/**
+	 * Constructor for creating a ping notification without payload. The notification is not dispatched to any user.
 	 */
 	Notification()
 	{
 		this.ping = true;
 	}
-
+	
 	/**
 	 * Constructor for creating a notification with a payload object. The notification is encrypted with the public key of the recipient.
 	 * @param sender User ID of the sender (for information purposes only)
@@ -68,40 +160,25 @@ public class Notification
 			Object payloadObject,
 			PublicKey key)
 	{
+		this.dateCreated = System.currentTimeMillis();
+		
+		synchronized(counterLock)
+		{
+			this.id = Long.toString(this.dateCreated) + String.format("%04d", counter);
+			
+			counter++;
+			if (counter > 9999)
+			{
+				counter = 0;
+			}
+		}
+		
 		this.ping = false;
 		this.sender = sender;
 		this.recipients = recipients;
-		this.dateCreated = System.currentTimeMillis();
 		
 		this.payloadEncrypted = new Payload(payloadObject);
 		this.payloadEncrypted.encryptRsa(key);
-	}
-
-	/**
-	 * True if the notification is a ping notification.
-	 * @return True if the notification is a ping notification
-	 */
-	boolean isPing()
-	{
-		return ping;
-	}
-
-	/**
-	 * Get the user IDs of the recipients of the notification.
-	 * @return The user IDs of the recipients of the notification
-	 */
-	public ArrayList<String> getRecipients()
-	{
-		return recipients;
-	}
-
-	/**
-	 * Get the user ID of the sender of the notification.
-	 * @return The user ID of the sender of the notification
-	 */
-	public String getSender()
-	{
-		return sender;
 	}
 	
 	/**
@@ -131,14 +208,23 @@ public class Notification
 	}
 	
 	/**
-	 * Get a JSON representation of the notification.
-	 * @return JSON notification of the message
+	 * Get the user IDs of the recipients of the notification.
+	 * @return The user IDs of the recipients of the notification
 	 */
-	String serialize()
+	public ArrayList<String> getRecipients()
 	{
-		return serializer.toJson(this);
+		return recipients;
 	}
 	
+	/**
+	 * Get the user ID of the sender of the notification.
+	 * @return The user ID of the sender of the notification
+	 */
+	public String getSender()
+	{
+		return sender;
+	}
+
 	/**
 	 * Get a JSON representation of the notification.
 	 * @return JSON representation of the notification
@@ -148,23 +234,29 @@ public class Notification
 		return this.serialize();
 	}
 	
-	/**
-	 * Get a notification from a JSON string.
-	 * @param jsonString The JSON string
-	 * @return The notification
-	 */
-	static Notification deserialize(String jsonString)
+	String getId()
 	{
-		try
-		{
-			return serializer.fromJson(jsonString, Notification.class);
-		}
-		catch (Exception x)
-		{
-			return null;
-		}
+		return this.id;
 	}
-
+	
+	/**
+	 * True if the notification is a ping notification.
+	 * @return True if the notification is a ping notification
+	 */
+	boolean isPing()
+	{
+		return ping;
+	}
+	
+	/**
+	 * Get a JSON representation of the notification.
+	 * @return JSON notification of the message
+	 */
+	String serialize()
+	{
+		return serializer.toJson(this);
+	}
+	
 	/**
 	 * Write the notification to a file.
 	 * @param pathToNotificationsFolder Folder path on the server where notification are stored
@@ -182,7 +274,9 @@ public class Notification
 		String fileName = 
 				Paths.get(
 						pathToNotificationsFolder, 
-						userId, Long.toString(this.dateCreated) + String.format("%04d", counter)).toString();
+						userId,
+						this.id
+				).toString();
 
 		counter++;
 		if (counter > 9999)
@@ -198,48 +292,5 @@ public class Notification
 		{
 			e.printStackTrace();
 		}
-	}
-	
-	/**
-	 * Get all notifications of a user currently stored in files.
-	 * @param pathToNotificationsFolder Folder path on the server where notifications are stored
-	 * @param userId The user ID of the recipient of the message
-	 * @return All stored notifications of a user
-	 */
-	static ArrayList<Tuple<Notification, File>> getAllNotificationsMessagesOfUserFromFile(String pathToNotificationsFolder, String userId)
-	{
-		ArrayList<Tuple<Notification, File>> notifications = new ArrayList<Tuple<Notification, File>>();
-		
-		File dir = Paths.get(pathToNotificationsFolder, userId).toFile();
-		
-		if (!dir.exists())
-		{
-			return notifications;
-		}
-		
-		String[] fileNames = dir.list();
-		Arrays.sort(fileNames);
-		
-		for (String fileName: fileNames)
-		{
-			File file = Paths.get(
-					pathToNotificationsFolder, 
-					userId,
-					fileName).toFile();
-			
-			Notification notification = null;
-			
-			try (BufferedReader br = new BufferedReader(
-					new FileReader(file)))
-			{
-				String json = br.readLine();
-				notification = Notification.deserialize(json);
-				notifications.add(new Tuple<Notification, File>(notification, file));
-			} catch (Exception e)
-			{
-			}
-		}
-		
-		return notifications;
 	}
 }
