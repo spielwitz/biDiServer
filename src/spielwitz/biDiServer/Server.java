@@ -43,85 +43,39 @@ import com.google.gson.JsonElement;
  */
 public abstract class Server
 {
+	private static final int SOCKET_TIMEOUT = 30000;
+	private static final int SERVER_THREAD_POOL_CORE_SIZE = 2;
+	private static final int SERVER_THREAD_POOL_MAX_SIZE = 200;
+	/**
+	 * The name of the root folder where the server stores all data. The name is "ServerData".
+	 */
+	public final static String FOLDER_NAME_ROOT = "ServerData";
+	private final static String FOLDER_NAME_LOGS = "Logs";
+	private final static String FOLDER_NAME_USERS = "Users";
+	
+	private final static String FOLDER_NAME_NOTIFICATIONS = "Notifications";
+	private final static String FOLDER_NAME_DATA_SETS = "DataSets";
+
+	private final static String MESSAGE_PROCESSING_CONTAINER_DATA_KEY_USER = "User";
 	private ServerConfiguration config;
 	private String homeDir;
 	private Log log;
+	
 	private long startDate;
+	
 	private boolean shutdown = false;
 	private boolean adminCreated;
-	
 	private ServerSocket serverSocket;
+	
 	private NotificationThreadPulseCheckThread pulseCheckThread;
-
+	
 	private Hashtable<String, DataSetInfo> dataSetInfos;
 	private Hashtable<String,User> users;
 	private Hashtable<String, Ciphers> ciphersPerSession = new Hashtable<String, Ciphers>();
 	private Hashtable<String, NotificationThread> notificationThreads = new Hashtable<String, NotificationThread>();
 	
 	private Object dataLock = new Object();
-	
-	private static final int SOCKET_TIMEOUT = 30000;
-	private static final int SERVER_THREAD_POOL_CORE_SIZE = 2;
-	private static final int SERVER_THREAD_POOL_MAX_SIZE = 200;
-	
-	/**
-	 * The name of the root folder where the server stores all data. The name is "ServerData".
-	 */
-	public final static String FOLDER_NAME_ROOT = "ServerData";
-	
-	private final static String FOLDER_NAME_LOGS = "Logs";
-	private final static String FOLDER_NAME_USERS = "Users";
-	private final static String FOLDER_NAME_NOTIFICATIONS = "Notifications";
-	private final static String FOLDER_NAME_DATA_SETS = "DataSets";
-	
-	private final static String MESSAGE_PROCESSING_CONTAINER_DATA_KEY_USER = "User";
 
-	/**
-	 * A request message of type CUSTOM was received at the server. Process your own logic here.
-	 * @param userId User ID
-	 * @param payloadRequest Request payload
-	 * @return The response message info and the response message payload
-	 */
-	protected abstract Tuple<ResponseInfo,Object> onCustomRequestMessageReceived(String userId, Object payloadRequest);
-
-	/**
-	 * Update the server configuration file.
-	 * @param config Server configuration
-	 */
-	protected abstract void onConfigurationUpdated(ServerConfiguration config);
-	
-	/**
-	 * Set the payload object of a data set info object.
-	 * @param dataId Data set ID
-	 * @param userIds Users related to the data set
-	 * @param dataSetPayloadObject Data set payload object
-	 * @param currentDataSetInfoPayloadObject Current data set info payload object
-	 * 
-	 * @return New data info payload object
-	 */
-	protected abstract Object setDataSetInfoPayloadObject(String dataId,  HashSet<String> userIds, Object dataSetPayloadObject, Object currentDataSetInfoPayloadObject);
-	
-	/**
-	 * Migrate a data set when the server is started.
-	 * @param className Name of the class of the data set payload
-	 * @param jsonElementBeforeMigration JSON representation of the data set payload before migration
-	 * @return Null, is no migration is required. Or else, the new JSON representation of the data set payload after migration
-	 */
-	protected abstract JsonElement migrateDataSet(String className, JsonElement jsonElementBeforeMigration);
-	
-	/**
-	 * Get the server build.
-	 * @return The server build
-	 */
-	protected abstract String getBuild();
-	
-	/**
-	 * Check the server and the client build.
-	 * @param clientBuild The client build
-	 * @return True, if server and client are compatible. Also the minimum compatible build of the server is returned.
-	 */
-	protected abstract ServerClientBuildCheckResult checkServerClientBuild(String clientBuild);
-	
 	/**
 	 * Instantiate a server object instance.
 	 * @param config The server configuration
@@ -148,7 +102,7 @@ public abstract class Server
 		this.initCreateAdmin();
 		this.initReadAllDataSets();
 	}
-	
+
 	/**
 	 * Start the server.
 	 */
@@ -225,6 +179,58 @@ public abstract class Server
 	}
 	
 	/**
+	 * Get the server log level.
+	 * @return The log level
+	 */
+	LogLevel getLogLevel()
+	{
+		return this.config.getLogLevel();
+	}
+	
+	/**
+	 * Check the server and the client build.
+	 * @param clientBuild The client build
+	 * @return True, if server and client are compatible. Also the minimum compatible build of the server is returned.
+	 */
+	protected abstract ServerClientBuildCheckResult checkServerClientBuild(String clientBuild);
+	
+	/**
+	 * Check if a data set exists.
+	 * @param id The id of the data set
+	 * @return True, if a data set exists
+	 */
+	protected boolean dataSetExists(String id)
+	{
+		synchronized(this.dataLock)
+		{
+			return this.dataSetInfos.containsKey(id);
+		}
+	}
+	
+	/**
+	 * Delete a data set.
+	 * @param id The data set ID.
+	 */
+	protected void deleteDataSet(String id)
+	{
+		if (ServerUtils.checkFileName(id) == FileNameCheck.Ok)
+		{
+			synchronized(this.dataLock)
+			{
+				File file = Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS, id).toFile();
+				file.delete();
+				this.dataSetInfos.remove(id);
+			}
+		}
+	}
+	
+	/**
+	 * Get the server build.
+	 * @return The server build
+	 */
+	protected abstract String getBuild();
+	
+	/**
 	 * Get the server configuration.
 	 * @return The server configuration
 	 */
@@ -232,29 +238,58 @@ public abstract class Server
 	{
 		return config;
 	}
-
-	private Log getLog()
-	{
-		return log;
-	}
 	
 	/**
-	 * Check if a user exists.
-	 * @param userId The user ID
-	 * @return True, if the user exists
+	 * Get a data set.
+	 * @param id The ID of the data set
+	 * @return The data set
 	 */
-	protected boolean userExists(String userId)
+	protected DataSet getDataSet(String id)
 	{
-		if (userId != null &&
-			userId.equals(User.ACTIVATION_USER_ID) ||
-			this.users.containsKey(userId))
+		if (ServerUtils.checkFileName(id) == FileNameCheck.Ok)
 		{
-			return true;
+			synchronized(this.dataLock)
+			{
+				return DataSet.readFromFile(Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS, id).toString());
+			}
 		}
 		else
 		{
-			return false;
+			return null;
 		}
+	}
+
+	/**
+	 * Get the information related to a data set.
+	 * @param id The ID of the data set
+	 * @return The data set information
+	 */
+	protected DataSetInfo getDataSetInfo(String id)
+	{
+		return this.dataSetInfos.get(id);
+	}
+	
+	/**
+	 * Get the data set infos of a specified user.
+	 * @param userId User ID
+	 * @return All data set infos related to the user
+	 */
+	protected PayloadResponseGetDataSetInfosOfUser getDataSetInfosOfUser(String userId)
+	{
+		ArrayList<DataSetInfo> dataSetInfos = new ArrayList<DataSetInfo>();
+		
+		synchronized(this.dataLock)
+		{
+			for (DataSetInfo info: this.dataSetInfos.values())
+			{
+				if (info.getUserIds().contains(userId))
+				{
+					dataSetInfos.add(info);
+				}
+			}
+		}
+
+		return new PayloadResponseGetDataSetInfosOfUser(dataSetInfos);
 	}
 	
 	/**
@@ -284,6 +319,219 @@ public abstract class Server
 		}
 		
 		return users;
+	}
+	
+	/**
+	 * Log a custom message in the server log.
+	 * @param severity Message severity
+	 * @param msg The message
+	 */
+	protected void logCustomMessage(LogLevel severity, String msg)
+	{
+		if (this.log != null)
+		{
+			this.log.logMessage(LogEventId.CUSTOM, severity, msg);
+		}
+	}
+	
+	/**
+	 * Migrate a data set when the server is started.
+	 * @param className Name of the class of the data set payload
+	 * @param jsonElementBeforeMigration JSON representation of the data set payload before migration
+	 * @return Null, is no migration is required. Or else, the new JSON representation of the data set payload after migration
+	 */
+	protected abstract JsonElement migrateDataSet(String className, JsonElement jsonElementBeforeMigration);
+	
+	/**
+	 * Update the server configuration file.
+	 * @param config Server configuration
+	 */
+	protected abstract void onConfigurationUpdated(ServerConfiguration config);
+
+	/**
+	 * A request message of type CUSTOM was received at the server. Process your own logic here.
+	 * @param userId User ID
+	 * @param payloadRequest Request payload
+	 * @return The response message info and the response message payload
+	 */
+	protected abstract Tuple<ResponseInfo,Object> onCustomRequestMessageReceived(String userId, Object payloadRequest);
+	
+	/**
+	 * Send a notification
+	 * @param sender Sender of the notification
+	 * @param payload Notification payload
+	 */
+	protected void pushNotification(String sender, PayloadRequestMessagePushNotification payload)
+	{
+		for (String userId: payload.getRecipients())
+		{
+			if (User.isUserIdReserved(userId))
+			{
+				continue;
+			}
+			
+			User user = this.getUser(userId);
+				
+			if (user == null || !user.isActive())
+			{
+				continue;
+			}
+			
+			this.sendSingleNotification(userId, 
+										 new Notification(
+														sender,
+														payload.getRecipients(),
+														payload.getPayloadObject(),
+														user.getUserPublicKeyObject()));
+		}
+	}
+
+	/**
+	 * Add or update a data set.
+	 * @param dataSet The data set
+	 * @return The result of the ID check
+	 */
+	protected FileNameCheck setDataSet(DataSet dataSet)
+	{
+		if (dataSet == null)
+		{
+			return FileNameCheck.InvalidCharacters;
+		}
+		
+		FileNameCheck fileNameCheck = ServerUtils.checkFileName(dataSet.getId());
+		
+		if (fileNameCheck == FileNameCheck.Ok)
+		{
+			synchronized(this.dataLock)
+			{
+				this.setDataSetInfoFromDataSet(dataSet);
+				dataSet.writeToFile(Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS, dataSet.getId()).toString());
+			}
+		}
+		
+		return fileNameCheck;
+	}
+	
+	/**
+	 * Set the payload object of a data set info object.
+	 * @param dataId Data set ID
+	 * @param userIds Users related to the data set
+	 * @param dataSetPayloadObject Data set payload object
+	 * @param currentDataSetInfoPayloadObject Current data set info payload object
+	 * 
+	 * @return New data info payload object
+	 */
+	protected abstract Object setDataSetInfoPayloadObject(String dataId,  HashSet<String> userIds, Object dataSetPayloadObject, Object currentDataSetInfoPayloadObject);
+	
+	/**
+	 * Check if a user exists.
+	 * @param userId The user ID
+	 * @return True, if the user exists
+	 */
+	protected boolean userExists(String userId)
+	{
+		if (userId != null &&
+			userId.equals(User.ACTIVATION_USER_ID) ||
+			this.users.containsKey(userId))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	private void addNotificationThread(String userId, NotificationThread notificationThread)
+	{
+		synchronized(this.notificationThreads)
+		{
+			NotificationThread t = this.notificationThreads.get(userId);
+			
+			if (t != null)
+			{
+				t.interrupt();
+				this.notificationThreads.remove(userId);
+			}
+			
+			this.notificationThreads.put(userId, notificationThread);
+			notificationThread.start();
+		}
+	}
+	
+	private void afterResponseMessageSent(MessageProcessingContainer container)
+	{
+		if (container.getRequestMessage().getType() != RequestMessageType.CUSTOM)
+		{
+			switch (container.getRequestMessage().getType())
+			{
+				case CHANGE_USER:
+				case ACTIVATE_USER:
+					this.afterResponseMessageSentChangeUser(container);
+					return;
+					
+				default:
+					return;
+			}
+		}
+	}
+	
+	private void afterResponseMessageSentChangeUser(MessageProcessingContainer container)
+	{
+		if (container.getResponseMessage().isSuccess())
+		{
+			this.updateUser((User)container.getData().get(MESSAGE_PROCESSING_CONTAINER_DATA_KEY_USER));
+		}
+	}
+	
+	private void closeServerSocket()
+	{
+		try
+		{
+			System.out.println(
+					TextProperties.getMessageText(TextProperties.ClosingSocketServer()));
+			
+			if (serverSocket != null)
+				serverSocket.close();
+			
+			this.log.logMessage(
+					LogEventId.G2,
+					LogLevel.Information,
+					TextProperties.getMessageText(TextProperties.ShutdownDone()));
+		}
+		catch (Exception e)
+		{
+			this.log.logMessage(
+					LogEventId.E2,
+					LogLevel.Error,
+					TextProperties.getMessageText(TextProperties.ShutdownError(e.getMessage())));
+			
+			e.printStackTrace();
+		}
+	}
+	
+	private void createFolder(File dir)
+	{
+		if (!dir.exists())
+		{
+			System.out.println(TextProperties.getMessageText(TextProperties.CreatingFolder(dir.getAbsolutePath().toString())));
+			dir.mkdirs();
+		}
+	}
+	
+	private void disconnect(String userId)
+	{
+		synchronized(this.notificationThreads)
+		{
+			NotificationThread notificationThread = this.notificationThreads.get(userId);
+			
+			if (notificationThread != null)
+			{
+				notificationThread.shutdownServer();
+			}
+			
+			this.notificationThreads.remove(userId);
+		}
 	}
 	
 	private Ciphers getCiphers(String sessionId)
@@ -321,31 +569,127 @@ public abstract class Server
 		}
 	}
 	
-	private void setCiphers(String sessionId, Ciphers ciphers)
+	private Log getLog()
 	{
-		if (sessionId == null || 
-			sessionId.equals(CryptoLib.NULL_UUID) ||
-			ciphers == null)
-		{
-			return;
-		}
-		
-		synchronized (this.ciphersPerSession)
-		{
-			ciphers.lastUsed = System.currentTimeMillis();
-			
-			if (ciphers.created == 0)
-				ciphers.created = ciphers.lastUsed;
-			
-			this.ciphersPerSession.put(sessionId, ciphers);
-		}
+		return log;
 	}
-	
+
 	private String getPathToNotificatiosFolder()
 	{
 		return Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_NOTIFICATIONS).toString();
 	}
-
+	
+	private ResponseMessage getResponseMessageNotAuthorized(String userId)
+	{
+		return new ResponseMessage(
+				false,
+				null,
+				TextProperties.NotAuthorized(userId));
+	}
+	
+	private void initCreateAdmin()
+	{
+		if (!this.adminCreated)
+		{
+			System.out.println(TextProperties.getMessageText(TextProperties.CreatingAdmin()));
+			
+			KeyPair userKeyPair = CryptoLib.getNewKeyPair();
+			
+			User adminUser = new User(
+					User.ADMIN_USER_ID,
+					"",
+					null,
+					true,
+					null,
+					CryptoLib.encodePublicKeyToBase64(userKeyPair.getPublic()));
+			
+			this.updateUser(adminUser);
+			
+			ClientConfiguration clientConfig = new ClientConfiguration(
+					adminUser.getId(),
+					this.config.getUrl(),
+					this.config.getPort(),
+					Client.CLIENT_SOCKET_TIMEOUT,
+					CryptoLib.encodePrivateKeyToBase64(userKeyPair.getPrivate()),
+					this.config.getServerPublicKey(),
+					this.config.getAdminEmail());
+			
+			String adminClientConfigurationFileName = Paths.get(
+					homeDir, 
+					FOLDER_NAME_ROOT, 
+					ClientConfiguration.getFileName(
+							adminUser.getId(), 
+							this.config.getUrl(), 
+							this.config.getPort())).toFile().getAbsolutePath();
+			
+			if (clientConfig.writeToFile(adminClientConfigurationFileName))
+			{
+				System.out.println(
+						TextProperties.getMessageText(TextProperties.FileCreated(adminClientConfigurationFileName)));
+				this.adminCreated = true;
+			}
+		}
+	}
+	
+	private Path initCreateDataSetFolders()
+	{
+		this.createFolder(new File(this.homeDir, FOLDER_NAME_ROOT));
+		
+		Path pathLog = Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_LOGS);
+		this.createFolder(pathLog.toFile());
+		
+		this.createFolder(Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_USERS).toFile());
+		this.createFolder(Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS).toFile());
+		this.createFolder(Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_NOTIFICATIONS).toFile());
+		
+		return pathLog;
+	}
+	
+	private void initReadAllDataSets()
+	{
+		File directoryGames = Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS).toFile();
+		this.dataSetInfos = new Hashtable<String, DataSetInfo>();
+		
+		for (String fileName: directoryGames.list())
+		{
+			System.out.println(TextProperties.getMessageText(TextProperties.ReadingDataSet(fileName)));
+			
+			String dataSetFileName = Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS, fileName).toString();
+			DataSet dataSet = DataSet.readFromFile(dataSetFileName);
+			
+			if (dataSet == null)
+				continue;
+			
+			JsonElement jsonElementAfterMigration = this.migrateDataSet(
+									dataSet.getPayload().getClassName(),
+									dataSet.getPayload().getJsonElement());
+			
+			if (jsonElementAfterMigration != null)
+			{
+				dataSet.getPayload().setJsonElement(jsonElementAfterMigration);
+				dataSet.writeToFile(dataSetFileName);
+			}
+			
+			this.setDataSetInfoFromDataSet(dataSet);
+		}		
+	}
+	
+	private void initReadAllUsers()
+	{
+		this.users = new Hashtable<String, User>();
+		this.adminCreated = false;
+		
+		File directoryUsers = Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_USERS).toFile();
+		for (String fileName: directoryUsers.list())
+		{
+			if (fileName.equals(User.ADMIN_USER_ID) || User.isUserIdValid(fileName))
+			{
+				System.out.println(TextProperties.getMessageText(TextProperties.ReadingUser(fileName)));
+				this.readUser(fileName);
+			}
+		}
+	}
+	
 	private void onRequestMessageReceived(MessageProcessingContainer container) throws ServerException
 	{
 		switch (container.getRequestMessage().getType())
@@ -403,6 +747,9 @@ public abstract class Server
 				
 				container.setResponseMessage(new ResponseMessage(null));
 				break;
+			case PUSH_NOTIFICATION_RECEIVED:
+				this.onRequestMessageReceivedPushNotificationReceived(container);
+				break;
 			case DISCONNECT:
 				this.disconnect(container.getUserId());
 				container.setResponseMessage(new ResponseMessage());
@@ -422,193 +769,57 @@ public abstract class Server
 		}
 	}
 	
-	private void pulseCheckNotificationThreads()
+	private void onRequestMessageReceivedActivateUser(MessageProcessingContainer container)
 	{
-		synchronized(this.notificationThreads)
+		if (!container.getUserId().equals(User.ACTIVATION_USER_ID))
 		{
-			for (NotificationThread t: this.notificationThreads.values())
-			{
-				t.pulseCheck();
-			}
-		}
-	}
-
-	private void addNotificationThread(String userId, NotificationThread notificationThread)
-	{
-		synchronized(this.notificationThreads)
-		{
-			NotificationThread t = this.notificationThreads.get(userId);
-			
-			if (t != null)
-			{
-				t.interrupt();
-				this.notificationThreads.remove(userId);
-			}
-			
-			this.notificationThreads.put(userId, notificationThread);
-			notificationThread.start();
-		}
-	}
-	
-	private void removeNotificationThread(String userId)
-	{
-		synchronized(this.notificationThreads)
-		{
-			this.notificationThreads.remove(userId);
-		}
-	}
-	
-	/**
-	 * Get the server log level.
-	 * @return The log level
-	 */
-	LogLevel getLogLevel()
-	{
-		return this.config.getLogLevel();
-	}
-	
-	private void afterResponseMessageSent(MessageProcessingContainer container)
-	{
-		if (container.getRequestMessage().getType() != RequestMessageType.CUSTOM)
-		{
-			switch (container.getRequestMessage().getType())
-			{
-				case CHANGE_USER:
-				case ACTIVATE_USER:
-					this.afterResponseMessageSentChangeUser(container);
-					return;
-					
-				default:
-					return;
-			}
-		}
-	}
-	
-	/**
-	 * Add or update a data set.
-	 * @param dataSet The data set
-	 * @return The result of the ID check
-	 */
-	protected FileNameCheck setDataSet(DataSet dataSet)
-	{
-		if (dataSet == null)
-		{
-			return FileNameCheck.InvalidCharacters;
+			container.setResponseMessage(this.getResponseMessageNotAuthorized(container.getUserId()));
+			return;
 		}
 		
-		FileNameCheck fileNameCheck = ServerUtils.checkFileName(dataSet.getId());
+		PayloadRequestMessageActivateUser payload = (PayloadRequestMessageActivateUser) container.getRequestMessage().getPayloadObject();
 		
-		if (fileNameCheck == FileNameCheck.Ok)
+		User user = this.getUser(payload.getUserId());
+		
+		if (user == null )
 		{
-			synchronized(this.dataLock)
-			{
-				this.setDataSetInfoFromDataSet(dataSet);
-				dataSet.writeToFile(Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS, dataSet.getId()).toString());
-			}
+			container.setResponseMessage(
+					new ResponseMessage(
+							false, 
+							null, 
+							TextProperties.UserActivationError(payload.getUserId())));
+			return;
 		}
 		
-		return fileNameCheck;
+		if (user.isActive())
+		{
+			container.setResponseMessage(
+					new ResponseMessage(
+							false, 
+							null, 
+							TextProperties.UserAlreadyActive(payload.getUserId())));
+			return;
+		}
+		
+		if (!user.getActivationCode().equals(payload.getActivationCode()))
+		{
+			container.setResponseMessage(
+					new ResponseMessage(
+							false, 
+							null, 
+							TextProperties.UserActivationError(payload.getUserId())));
+			return;
+		}
+		
+		user.setActivationCode("");
+		user.setActive(true);
+		user.setUserPublicKey(payload.getUserPublicKey());
+		
+		container.getData().put(MESSAGE_PROCESSING_CONTAINER_DATA_KEY_USER, user);
+		
+		container.setResponseMessage(new ResponseMessage(null));
 	}
 	
-	/**
-	 * Get a data set.
-	 * @param id The ID of the data set
-	 * @return The data set
-	 */
-	protected DataSet getDataSet(String id)
-	{
-		if (ServerUtils.checkFileName(id) == FileNameCheck.Ok)
-		{
-			synchronized(this.dataLock)
-			{
-				return DataSet.readFromFile(Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS, id).toString());
-			}
-		}
-		else
-		{
-			return null;
-		}
-	}
-	
-	/**
-	 * Check if a data set exists.
-	 * @param id The id of the data set
-	 * @return True, if a data set exists
-	 */
-	protected boolean dataSetExists(String id)
-	{
-		synchronized(this.dataLock)
-		{
-			return this.dataSetInfos.containsKey(id);
-		}
-	}
-	
-	/**
-	 * Get the information related to a data set.
-	 * @param id The ID of the data set
-	 * @return The data set information
-	 */
-	protected DataSetInfo getDataSetInfo(String id)
-	{
-		return this.dataSetInfos.get(id);
-	}
-	
-	/**
-	 * Delete a data set.
-	 * @param id The data set ID.
-	 */
-	protected void deleteDataSet(String id)
-	{
-		if (ServerUtils.checkFileName(id) == FileNameCheck.Ok)
-		{
-			synchronized(this.dataLock)
-			{
-				File file = Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS, id).toFile();
-				file.delete();
-				this.dataSetInfos.remove(id);
-			}
-		}
-	}
-	
-	/**
-	 * Log a custom message in the server log.
-	 * @param severity Message severity
-	 * @param msg The message
-	 */
-	protected void logCustomMessage(LogLevel severity, String msg)
-	{
-		if (this.log != null)
-		{
-			this.log.logMessage(LogEventId.CUSTOM, severity, msg);
-		}
-	}
-	
-	private void closeServerSocket()
-	{
-		try
-		{
-			System.out.println(
-					TextProperties.getMessageText(TextProperties.ClosingSocketServer()));
-			
-			if (serverSocket != null)
-				serverSocket.close();
-			
-			this.log.logMessage(
-					LogEventId.G2,
-					LogLevel.Information,
-					TextProperties.getMessageText(TextProperties.ShutdownDone()));
-		}
-		catch (Exception e)
-		{
-			this.log.logMessage(
-					LogEventId.E2,
-					LogLevel.Error,
-					TextProperties.getMessageText(TextProperties.ShutdownError(e.getMessage())));
-			
-			e.printStackTrace();
-		}
-	}
-
 	private void onRequestMessageReceivedChangeUser(MessageProcessingContainer container)
 	{
 		if (!container.getUserId().equals(User.ADMIN_USER_ID))
@@ -713,67 +924,142 @@ public abstract class Server
 					new ResponseMessage(new Payload(payloadResponse)));
 	}
 	
-	private void onRequestMessageReceivedActivateUser(MessageProcessingContainer container)
+	private void onRequestMessageReceivedDeleteDataSet(MessageProcessingContainer container)
 	{
-		if (!container.getUserId().equals(User.ACTIVATION_USER_ID))
+		String dataSetId = (String)container.getRequestMessage().getPayloadObject();
+		
+		synchronized(this.dataLock)
+		{
+			if (this.dataSetInfos.containsKey(dataSetId))
+			{
+				DataSet dataSet = this.getDataSet(dataSetId);
+				
+				if (!container.getUserId().equals(User.ADMIN_USER_ID) &&
+					!dataSet.getUserIds().contains(container.getUserId()))
+				{
+					container.setResponseMessage(
+							new ResponseMessage(
+									false,
+									null,
+									TextProperties.DataSetUserNotAuthorizedDelete(
+											container.getUserId(),
+											dataSetId)));
+					return;
+				}
+				
+				this.deleteDataSet(dataSetId);
+			}
+		}
+		
+		container.setResponseMessage(
+				new ResponseMessage(
+						null));
+	}
+	
+	private void onRequestMessageReceivedDeleteUser(MessageProcessingContainer container)
+	{
+		if (!container.getUserId().equals(User.ADMIN_USER_ID))
 		{
 			container.setResponseMessage(this.getResponseMessageNotAuthorized(container.getUserId()));
 			return;
 		}
 		
-		PayloadRequestMessageActivateUser payload = (PayloadRequestMessageActivateUser) container.getRequestMessage().getPayloadObject();
+		String userId = (String)container.getRequestMessage().getPayloadObject();
 		
-		User user = this.getUser(payload.getUserId());
-		
-		if (user == null )
+		if (!this.users.containsKey(userId))
 		{
 			container.setResponseMessage(
 					new ResponseMessage(
 							false, 
 							null, 
-							TextProperties.UserActivationError(payload.getUserId())));
-			return;
+							TextProperties.UserIdNotExists(userId)));
 		}
-		
-		if (user.isActive())
+		else if (User.isUserIdReserved(userId))
 		{
 			container.setResponseMessage(
 					new ResponseMessage(
 							false, 
 							null, 
-							TextProperties.UserAlreadyActive(payload.getUserId())));
-			return;
+							TextProperties.UserCannotBeDeleted(userId)));
 		}
-		
-		if (!user.getActivationCode().equals(payload.getActivationCode()))
+		else
 		{
+			synchronized (this.users)
+			{
+				synchronized(this.dataLock)
+				{
+					File file = Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_USERS, userId).toFile();
+					file.delete();
+					
+					this.users.remove(userId);
+					
+					for (String dataSetId: this.dataSetInfos.keySet())
+					{
+						DataSetInfo dataSetInfo = this.dataSetInfos.get(dataSetId);
+						
+						if (dataSetInfo.getUserIds().contains(userId))
+						{
+							DataSet dataSet = this.getDataSet(dataSetInfo.getId());
+							dataSet.getUserIds().remove(userId);
+							
+							this.setDataSet(dataSet);
+						}
+					}
+				}
+			}
+			
 			container.setResponseMessage(
-					new ResponseMessage(
-							false, 
-							null, 
-							TextProperties.UserActivationError(payload.getUserId())));
-			return;
+					new ResponseMessage(null));
 		}
-		
-		user.setActivationCode("");
-		user.setActive(true);
-		user.setUserPublicKey(payload.getUserPublicKey());
-		
-		container.getData().put(MESSAGE_PROCESSING_CONTAINER_DATA_KEY_USER, user);
-		
-		container.setResponseMessage(new ResponseMessage(null));
 	}
 	
-	private void onRequestMessageReceivedGetServerStatus(MessageProcessingContainer container)
+	private void onRequestMessageReceivedGetDataSet(MessageProcessingContainer container)
 	{
-		PayloadResponseMessageGetServerStatus payloadResponse = 
-				new PayloadResponseMessageGetServerStatus(
-						this.startDate, 
-						this.log != null ? this.log.getSize() : 0, 
-						this.config.getLogLevel(), 
-						this.getBuild());
+		String dataSetId = (String)container.getRequestMessage().getPayloadObject();
 		
-		container.setResponseMessage(new ResponseMessage(new Payload(payloadResponse)));
+		synchronized(this.dataLock)
+		{
+			if (!this.dataSetInfos.containsKey(dataSetId))
+			{
+				container.setResponseMessage(
+						new ResponseMessage(
+								false,
+								null,
+								TextProperties.DataSetIdNotExists(dataSetId)));
+				return;
+			}
+			
+			DataSet dataSet = this.getDataSet(dataSetId);
+			
+			if (container.getUserId().equals(User.ADMIN_USER_ID) ||
+				dataSet.getUserIds().contains(container.getUserId()))
+			{
+				container.setResponseMessage(
+						new ResponseMessage(
+								new Payload(dataSet)));
+			}
+			else
+			{
+				container.setResponseMessage(
+						new ResponseMessage(
+								false,
+								null,
+								TextProperties.DataSetUserNotAuthorized(
+										container.getUserId(),
+										dataSetId)));
+				return;
+			}
+		}
+	}
+	
+	private void onRequestMessageReceivedGetDataSetInfosOfUser(MessageProcessingContainer container)
+	{
+		String userId = (String)container.getRequestMessage().getPayloadObject();
+		
+		container.setResponseMessage(
+				new ResponseMessage(
+						new Payload(
+								this.getDataSetInfosOfUser(userId))));
 	}
 	
 	private void onRequestMessageReceivedGetLog(MessageProcessingContainer container)
@@ -792,30 +1078,68 @@ public abstract class Server
 		container.setResponseMessage(new ResponseMessage(new Payload(payloadResponse)));
 	}
 	
-	private void onRequestMessageReceivedSetLogLevel(MessageProcessingContainer container)
+	private void onRequestMessageReceivedGetServerStatus(MessageProcessingContainer container)
 	{
-		if (!container.getUserId().equals(User.ADMIN_USER_ID))
-		{
-			container.setResponseMessage(this.getResponseMessageNotAuthorized(container.getUserId()));
-			return;
-		}
+		PayloadResponseMessageGetServerStatus payloadResponse = 
+				new PayloadResponseMessageGetServerStatus(
+						this.startDate, 
+						this.log != null ? this.log.getSize() : 0, 
+						this.config.getLogLevel(), 
+						this.getBuild());
 		
-		LogLevel newLogLevel = (LogLevel) container.getRequestMessage().getPayloadObject();
-		
-		this.config.setLogLevel(newLogLevel);
-		this.onConfigurationUpdated(config);
-		
-		container.setResponseMessage(new ResponseMessage(null));
+		container.setResponseMessage(new ResponseMessage(new Payload(payloadResponse)));
 	}
 	
-	private void onRequestMessageReceivedGetDataSetInfosOfUser(MessageProcessingContainer container)
+	private void onRequestMessageReceivedGetUser(MessageProcessingContainer container)
 	{
 		String userId = (String)container.getRequestMessage().getPayloadObject();
+		
+		if (User.isUserIdReserved(userId) ||
+			!this.users.containsKey(userId))
+		{
+			container.setResponseMessage(
+					new ResponseMessage(
+							false, 
+							null, 
+							TextProperties.UserIdNotExists(userId)));
+		}
+		else
+		{
+			container.setResponseMessage(
+					new ResponseMessage(
+							new Payload(this.users.get(userId))));
+		}
+	}
+	
+	private void onRequestMessageReceivedGetUsers(MessageProcessingContainer container)
+	{
+		ArrayList<User> users = new ArrayList<User>();
+		
+		for (User user: this.users.values())
+		{
+			if (!User.isUserIdReserved(user.getId()))
+			{
+				users.add(user);
+			}
+		}
 		
 		container.setResponseMessage(
 				new ResponseMessage(
 						new Payload(
-								this.getDataSetInfosOfUser(userId))));
+								new PayloadResponseMessageGetUsers(
+										users))));
+	}
+		
+	private void onRequestMessageReceivedPushNotificationReceived(MessageProcessingContainer container)
+	{
+		String notificationMessageReceived = (String)container.getRequestMessage().getPayloadObject();
+		
+		Notification.deleteFile(
+				Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_NOTIFICATIONS).toString(),
+				container.getUserId(),
+				notificationMessageReceived);
+		
+		container.setResponseMessage(new ResponseMessage());
 	}
 	
 	private void onRequestMessageReceivedSetDataSet(MessageProcessingContainer container, boolean create)
@@ -896,99 +1220,7 @@ public abstract class Server
 				new ResponseMessage());
 	}
 	
-	private void onRequestMessageReceivedGetDataSet(MessageProcessingContainer container)
-	{
-		String dataSetId = (String)container.getRequestMessage().getPayloadObject();
-		
-		synchronized(this.dataLock)
-		{
-			if (!this.dataSetInfos.containsKey(dataSetId))
-			{
-				container.setResponseMessage(
-						new ResponseMessage(
-								false,
-								null,
-								TextProperties.DataSetIdNotExists(dataSetId)));
-				return;
-			}
-			
-			DataSet dataSet = this.getDataSet(dataSetId);
-			
-			if (container.getUserId().equals(User.ADMIN_USER_ID) ||
-				dataSet.getUserIds().contains(container.getUserId()))
-			{
-				container.setResponseMessage(
-						new ResponseMessage(
-								new Payload(dataSet)));
-			}
-			else
-			{
-				container.setResponseMessage(
-						new ResponseMessage(
-								false,
-								null,
-								TextProperties.DataSetUserNotAuthorized(
-										container.getUserId(),
-										dataSetId)));
-				return;
-			}
-		}
-	}
-	
-	private void onRequestMessageReceivedDeleteDataSet(MessageProcessingContainer container)
-	{
-		String dataSetId = (String)container.getRequestMessage().getPayloadObject();
-		
-		synchronized(this.dataLock)
-		{
-			if (this.dataSetInfos.containsKey(dataSetId))
-			{
-				DataSet dataSet = this.getDataSet(dataSetId);
-				
-				if (!container.getUserId().equals(User.ADMIN_USER_ID) &&
-					!dataSet.getUserIds().contains(container.getUserId()))
-				{
-					container.setResponseMessage(
-							new ResponseMessage(
-									false,
-									null,
-									TextProperties.DataSetUserNotAuthorizedDelete(
-											container.getUserId(),
-											dataSetId)));
-					return;
-				}
-				
-				this.deleteDataSet(dataSetId);
-			}
-		}
-		
-		container.setResponseMessage(
-				new ResponseMessage(
-						null));
-	}
-	
-	private void onRequestMessageReceivedGetUser(MessageProcessingContainer container)
-	{
-		String userId = (String)container.getRequestMessage().getPayloadObject();
-		
-		if (User.isUserIdReserved(userId) ||
-			!this.users.containsKey(userId))
-		{
-			container.setResponseMessage(
-					new ResponseMessage(
-							false, 
-							null, 
-							TextProperties.UserIdNotExists(userId)));
-		}
-		else
-		{
-			container.setResponseMessage(
-					new ResponseMessage(
-							new Payload(this.users.get(userId))));
-		}
-	}
-	
-	private void onRequestMessageReceivedDeleteUser(MessageProcessingContainer container)
+	private void onRequestMessageReceivedSetLogLevel(MessageProcessingContainer container)
 	{
 		if (!container.getUserId().equals(User.ADMIN_USER_ID))
 		{
@@ -996,155 +1228,21 @@ public abstract class Server
 			return;
 		}
 		
-		String userId = (String)container.getRequestMessage().getPayloadObject();
+		LogLevel newLogLevel = (LogLevel) container.getRequestMessage().getPayloadObject();
 		
-		if (!this.users.containsKey(userId))
+		this.config.setLogLevel(newLogLevel);
+		this.onConfigurationUpdated(config);
+		
+		container.setResponseMessage(new ResponseMessage(null));
+	}
+	
+	private void pulseCheckNotificationThreads()
+	{
+		synchronized(this.notificationThreads)
 		{
-			container.setResponseMessage(
-					new ResponseMessage(
-							false, 
-							null, 
-							TextProperties.UserIdNotExists(userId)));
-		}
-		else if (User.isUserIdReserved(userId))
-		{
-			container.setResponseMessage(
-					new ResponseMessage(
-							false, 
-							null, 
-							TextProperties.UserCannotBeDeleted(userId)));
-		}
-		else
-		{
-			synchronized (this.users)
+			for (NotificationThread t: this.notificationThreads.values())
 			{
-				synchronized(this.dataLock)
-				{
-					File file = Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_USERS, userId).toFile();
-					file.delete();
-					
-					this.users.remove(userId);
-					
-					for (String dataSetId: this.dataSetInfos.keySet())
-					{
-						DataSetInfo dataSetInfo = this.dataSetInfos.get(dataSetId);
-						
-						if (dataSetInfo.getUserIds().contains(userId))
-						{
-							DataSet dataSet = this.getDataSet(dataSetInfo.getId());
-							dataSet.getUserIds().remove(userId);
-							
-							this.setDataSet(dataSet);
-						}
-					}
-				}
-			}
-			
-			container.setResponseMessage(
-					new ResponseMessage(null));
-		}
-	}
-	
-	private void onRequestMessageReceivedGetUsers(MessageProcessingContainer container)
-	{
-		ArrayList<User> users = new ArrayList<User>();
-		
-		for (User user: this.users.values())
-		{
-			if (!User.isUserIdReserved(user.getId()))
-			{
-				users.add(user);
-			}
-		}
-		
-		container.setResponseMessage(
-				new ResponseMessage(
-						new Payload(
-								new PayloadResponseMessageGetUsers(
-										users))));
-	}
-	
-	/**
-	 * Send a notification
-	 * @param sender Sender of the notification
-	 * @param payload Notification payload
-	 */
-	protected void pushNotification(String sender, PayloadRequestMessagePushNotification payload)
-	{
-		for (String userId: payload.getRecipients())
-		{
-			if (User.isUserIdReserved(userId))
-			{
-				continue;
-			}
-			
-			User user = this.getUser(userId);
-				
-			if (user == null || !user.isActive())
-			{
-				continue;
-			}
-			
-			this.sendSingleNotification(userId, 
-										 new Notification(
-														sender,
-														payload.getRecipients(),
-														payload.getPayloadObject(),
-														user.getUserPublicKeyObject()));
-		}
-	}
-	
-	private void afterResponseMessageSentChangeUser(MessageProcessingContainer container)
-	{
-		if (container.getResponseMessage().isSuccess())
-		{
-			this.updateUser((User)container.getData().get(MESSAGE_PROCESSING_CONTAINER_DATA_KEY_USER));
-		}
-	}
-	
-	private ResponseMessage getResponseMessageNotAuthorized(String userId)
-	{
-		return new ResponseMessage(
-				false,
-				null,
-				TextProperties.NotAuthorized(userId));
-	}
-	
-	private Path initCreateDataSetFolders()
-	{
-		this.createFolder(new File(this.homeDir, FOLDER_NAME_ROOT));
-		
-		Path pathLog = Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_LOGS);
-		this.createFolder(pathLog.toFile());
-		
-		this.createFolder(Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_USERS).toFile());
-		this.createFolder(Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS).toFile());
-		this.createFolder(Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_NOTIFICATIONS).toFile());
-		
-		return pathLog;
-	}
-		
-	private void createFolder(File dir)
-	{
-		if (!dir.exists())
-		{
-			System.out.println(TextProperties.getMessageText(TextProperties.CreatingFolder(dir.getAbsolutePath().toString())));
-			dir.mkdirs();
-		}
-	}
-	
-	private void initReadAllUsers()
-	{
-		this.users = new Hashtable<String, User>();
-		this.adminCreated = false;
-		
-		File directoryUsers = Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_USERS).toFile();
-		for (String fileName: directoryUsers.list())
-		{
-			if (fileName.equals(User.ADMIN_USER_ID) || User.isUserIdValid(fileName))
-			{
-				System.out.println(TextProperties.getMessageText(TextProperties.ReadingUser(fileName)));
-				this.readUser(fileName);
+				t.pulseCheck();
 			}
 		}
 	}
@@ -1170,157 +1268,48 @@ public abstract class Server
 		}
 	}
 	
-	private void updateUser(User user)
+	private void removeNotificationThread(String userId)
 	{
-		synchronized(this.users)
+		synchronized(this.notificationThreads)
 		{
-			user.writeToFile(Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_USERS, user.getId()).toString());
-			
-			if (this.users.containsKey(user.getId()))
-				this.users.replace(user.getId(), user);
-			else
-				this.users.put(user.getId(), user);
-			
-			if (user.getId().equals(User.ADMIN_USER_ID))
-				this.adminCreated = true;
+			this.notificationThreads.remove(userId);
 		}
-	}
-	
-	private void initCreateAdmin()
-	{
-		if (!this.adminCreated)
-		{
-			System.out.println(TextProperties.getMessageText(TextProperties.CreatingAdmin()));
-			
-			KeyPair userKeyPair = CryptoLib.getNewKeyPair();
-			
-			User adminUser = new User(
-					User.ADMIN_USER_ID,
-					"",
-					null,
-					true,
-					null,
-					CryptoLib.encodePublicKeyToBase64(userKeyPair.getPublic()));
-			
-			this.updateUser(adminUser);
-			
-			ClientConfiguration clientConfig = new ClientConfiguration(
-					adminUser.getId(),
-					this.config.getUrl(),
-					this.config.getPort(),
-					Client.CLIENT_SOCKET_TIMEOUT,
-					CryptoLib.encodePrivateKeyToBase64(userKeyPair.getPrivate()),
-					this.config.getServerPublicKey(),
-					this.config.getAdminEmail());
-			
-			String adminClientConfigurationFileName = Paths.get(
-					homeDir, 
-					FOLDER_NAME_ROOT, 
-					ClientConfiguration.getFileName(
-							adminUser.getId(), 
-							this.config.getUrl(), 
-							this.config.getPort())).toFile().getAbsolutePath();
-			
-			if (clientConfig.writeToFile(adminClientConfigurationFileName))
-			{
-				System.out.println(
-						TextProperties.getMessageText(TextProperties.FileCreated(adminClientConfigurationFileName)));
-				this.adminCreated = true;
-			}
-		}
-	}
-	
-	private void initReadAllDataSets()
-	{
-		File directoryGames = Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS).toFile();
-		this.dataSetInfos = new Hashtable<String, DataSetInfo>();
-		
-		for (String fileName: directoryGames.list())
-		{
-			System.out.println(TextProperties.getMessageText(TextProperties.ReadingDataSet(fileName)));
-			
-			String dataSetFileName = Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_DATA_SETS, fileName).toString();
-			DataSet dataSet = DataSet.readFromFile(dataSetFileName);
-			
-			if (dataSet == null)
-				continue;
-			
-			JsonElement jsonElementAfterMigration = this.migrateDataSet(
-									dataSet.getPayload().getClassName(),
-									dataSet.getPayload().getJsonElement());
-			
-			if (jsonElementAfterMigration != null)
-			{
-				dataSet.getPayload().setJsonElement(jsonElementAfterMigration);
-				dataSet.writeToFile(dataSetFileName);
-			}
-			
-			this.setDataSetInfoFromDataSet(dataSet);
-		}		
 	}
 	
 	private void sendSingleNotification(String userId, Notification notification)
 	{
+		notification.writeToFile(
+				Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_NOTIFICATIONS).toString(),
+				userId);
+		
 		synchronized(this.notificationThreads)
 		{
 			NotificationThread notificationThread = this.notificationThreads.get(userId);
-			boolean send = true;
 			
-			if (notificationThread == null)
-			{
-				send = false;
-			}
-			else if (!notificationThread.isAlive())
-			{
-				this.notificationThreads.remove(userId);
-				send = false;
-			}
-			
-			if (send)
+			if (notificationThread != null && notificationThread.isAlive())
 			{
 				notificationThread.pushNotification(notification);
 			}
-			else
-			{
-				notification.writeToFile(
-						Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_NOTIFICATIONS).toString(),
-						userId);
-			}
 		}
 	}
 	
-	private void shutdown(MessageProcessingContainer container)
+	private void setCiphers(String sessionId, Ciphers ciphers)
 	{
-		if (!container.getUserId().equals(User.ADMIN_USER_ID))
+		if (sessionId == null || 
+			sessionId.equals(CryptoLib.NULL_UUID) ||
+			ciphers == null)
 		{
-			container.setResponseMessage(this.getResponseMessageNotAuthorized(container.getUserId()));
 			return;
 		}
 		
-		synchronized(this.notificationThreads)
+		synchronized (this.ciphersPerSession)
 		{
-			for (NotificationThread t: this.notificationThreads.values())
-			{
-				t.shutdownServer();
-			}
-		}
-		
-		this.closeServerSocket();
-		this.shutdown = true;
-	}
-	
-	private void disconnect(String userId)
-	{
-		synchronized(this.notificationThreads)
-		{
-			NotificationThread notificationThread = this.notificationThreads.get(userId);
+			ciphers.lastUsed = System.currentTimeMillis();
 			
-			if (notificationThread != null)
-			{
-				notificationThread.shutdownServer();
-			}
+			if (ciphers.created == 0)
+				ciphers.created = ciphers.lastUsed;
 			
-			this.notificationThreads.remove(userId);
+			this.ciphersPerSession.put(sessionId, ciphers);
 		}
 	}
 	
@@ -1349,30 +1338,192 @@ public abstract class Server
 		this.dataSetInfos.put(dataSet.getId(), dataSetInfo);
 	}
 	
-	/**
-	 * Get the data set infos of a specified user.
-	 * @param userId User ID
-	 * @return All data set infos related to the user
-	 */
-	protected PayloadResponseGetDataSetInfosOfUser getDataSetInfosOfUser(String userId)
+	private void shutdown(MessageProcessingContainer container)
 	{
-		ArrayList<DataSetInfo> dataSetInfos = new ArrayList<DataSetInfo>();
-		
-		synchronized(this.dataLock)
+		if (!container.getUserId().equals(User.ADMIN_USER_ID))
 		{
-			for (DataSetInfo info: this.dataSetInfos.values())
+			container.setResponseMessage(this.getResponseMessageNotAuthorized(container.getUserId()));
+			return;
+		}
+		
+		synchronized(this.notificationThreads)
+		{
+			for (NotificationThread t: this.notificationThreads.values())
 			{
-				if (info.getUserIds().contains(userId))
-				{
-					dataSetInfos.add(info);
-				}
+				t.shutdownServer();
 			}
 		}
-
-		return new PayloadResponseGetDataSetInfosOfUser(dataSetInfos);
+		
+		this.closeServerSocket();
+		this.shutdown = true;
+	}
+	
+	private void updateUser(User user)
+	{
+		synchronized(this.users)
+		{
+			user.writeToFile(Paths.get(this.homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_USERS, user.getId()).toString());
+			
+			if (this.users.containsKey(user.getId()))
+				this.users.replace(user.getId(), user);
+			else
+				this.users.put(user.getId(), user);
+			
+			if (user.getId().equals(User.ADMIN_USER_ID))
+				this.adminCreated = true;
+		}
 	}
 	
 	// =============================================
+	
+	private class NotificationThread extends Thread
+	{
+		private String userId;
+		private Socket socket;
+		private OutputStream out;
+		
+		private NotificationSocketCommunicationStructure commStruct;
+		
+		NotificationThread(String userId, Socket socket, OutputStream out)
+		{
+			this.userId = userId;
+			this.socket = socket;
+			this.out = out;
+			
+			this.commStruct = new NotificationSocketCommunicationStructure();
+		}
+		
+		public void run()
+		{
+			try
+			{
+				this.socket.setSoTimeout(0);
+			}
+			catch (Exception x)
+			{
+				return;
+			}
+			
+			boolean closeSocket = false;
+			
+			ArrayList<Notification> notifications = Notification.getAllNotificationsMessagesOfUserFromFile(
+																		getPathToNotificatiosFolder(), 
+																		userId);
+			
+			for (Notification notification: notifications)
+			{
+				try
+				{
+					this.executePushNotification(notification, out);
+				}
+				catch (Exception e)
+				{
+					closeSocket = true;
+					break;
+				}
+			}
+			
+			while (!closeSocket)
+			{
+				synchronized(this.commStruct)
+				{
+					try
+					{
+						this.commStruct.wait();
+						
+						if (this.commStruct.closeSocket)
+						{
+							closeSocket = true;
+						}
+						else
+						{
+							this.executePushNotification(this.commStruct.notification, out);
+						}
+					}
+					catch (SocketException e)
+					{
+						closeSocket = true;
+					}
+					catch (InterruptedException e)
+					{
+						closeSocket = true;
+					}
+					catch (Exception e)
+					{
+						getLog().logMessage(
+								LogEventId.E7, 
+								LogLevel.Error,
+								TextProperties.getMessageText(
+									TextProperties.NotificationSocketUnexpectedError(
+											this.userId, 
+											e.getMessage())));
+					}
+				}
+			}
+			
+			removeNotificationThread(userId);
+			
+			try {
+				this.socket.close();
+			} catch (IOException x)
+			{
+			}
+		}
+		
+		void pulseCheck()
+		{
+			this.pushNotification(new Notification());
+		}
+		
+		void pushNotification(Notification notification)
+		{
+			synchronized(this.commStruct)
+			{
+				this.commStruct.notification = notification;
+				this.commStruct.notify();
+			}
+		}
+		
+		void shutdownServer()
+		{
+			synchronized(this.commStruct)
+			{
+				this.commStruct.closeSocket = true;
+				this.commStruct.notify();
+			}
+		}
+		
+		private void executePushNotification(Notification notification, OutputStream out) throws Exception
+		{
+			CryptoLib.sendStringRsaEncrypted(
+					out, 
+					notification.serialize(), 
+					getUser(this.userId).getUserPublicKeyObject());
+		}
+	}
+
+	// ==========================================================
+	
+	private class NotificationThreadPulseCheckThread extends Thread
+	{
+		public void run()
+		{
+			do
+			{
+				try {
+					Thread.sleep(30000);
+				} catch (Exception e)
+				{
+					break;
+				}
+				
+				pulseCheckNotificationThreads();
+				
+			} while (true);
+		}
+	}
+	
+	// ==========================================================
 	
 	private class ServerThread implements Runnable
 	{
@@ -1715,163 +1866,6 @@ public abstract class Server
 			}
 			
 			return sb.toString();
-		}
-	}
-
-	// ==========================================================
-	
-	private class NotificationThread extends Thread
-	{
-		private String userId;
-		private Socket socket;
-		private OutputStream out;
-		
-		private NotificationSocketCommunicationStructure commStruct;
-		
-		NotificationThread(String userId, Socket socket, OutputStream out)
-		{
-			this.userId = userId;
-			this.socket = socket;
-			this.out = out;
-			
-			this.commStruct = new NotificationSocketCommunicationStructure();
-		}
-		
-		public void run()
-		{
-			try
-			{
-				this.socket.setSoTimeout(0);
-			}
-			catch (Exception x)
-			{
-				return;
-			}
-			
-			boolean closeSocket = false;
-			
-			ArrayList<Tuple<Notification, File>> notifications = Notification.getAllNotificationsMessagesOfUserFromFile(
-																		getPathToNotificatiosFolder(), 
-																		userId);
-			
-			ArrayList<File> filesThatCanBeDeleted = new ArrayList<File>();
-			
-			for (Tuple<Notification, File> notification: notifications)
-			{
-				try
-				{
-					this.executePushNotification(notification.getE1(), out);
-					filesThatCanBeDeleted.add(notification.getE2());
-				}
-				catch (Exception e)
-				{
-					closeSocket = true;
-					break;
-				}
-			}
-			
-			for (File file: filesThatCanBeDeleted)
-			{
-				file.delete();
-			}
-			
-			while (!closeSocket)
-			{
-				synchronized(this.commStruct)
-				{
-					try
-					{
-						this.commStruct.wait();
-						
-						if (this.commStruct.closeSocket)
-						{
-							closeSocket = true;
-						}
-						else
-						{
-							this.executePushNotification(this.commStruct.notification, out);
-						}
-					}
-					catch (SocketException e)
-					{
-						closeSocket = true;
-					}
-					catch (InterruptedException e)
-					{
-						closeSocket = true;
-					}
-					catch (Exception e)
-					{
-						getLog().logMessage(
-								LogEventId.E7, 
-								LogLevel.Error,
-								TextProperties.getMessageText(
-									TextProperties.NotificationSocketUnexpectedError(
-											this.userId, 
-											e.getMessage())));
-					}
-				}
-			}
-			
-			removeNotificationThread(userId);
-			
-			try {
-				this.socket.close();
-			} catch (IOException x)
-			{
-			}
-		}
-		
-		void pushNotification(Notification notification)
-		{
-			synchronized(this.commStruct)
-			{
-				this.commStruct.notification = notification;
-				this.commStruct.notify();
-			}
-		}
-		
-		void pulseCheck()
-		{
-			this.pushNotification(new Notification());
-		}
-		
-		private void executePushNotification(Notification notification, OutputStream out) throws Exception
-		{
-			CryptoLib.sendStringRsaEncrypted(
-					out, 
-					notification.serialize(), 
-					getUser(this.userId).getUserPublicKeyObject());
-		}
-		
-		void shutdownServer()
-		{
-			synchronized(this.commStruct)
-			{
-				this.commStruct.closeSocket = true;
-				this.commStruct.notify();
-			}
-		}
-	}
-	
-	// ==========================================================
-	
-	private class NotificationThreadPulseCheckThread extends Thread
-	{
-		public void run()
-		{
-			do
-			{
-				try {
-					Thread.sleep(30000);
-				} catch (Exception e)
-				{
-					break;
-				}
-				
-				pulseCheckNotificationThreads();
-				
-			} while (true);
 		}
 	}
 }

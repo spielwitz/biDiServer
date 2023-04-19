@@ -610,6 +610,10 @@ public abstract class Client
 					
 					if (!notification.isPing())
 					{
+						sendRequestMessage(
+								RequestMessageType.PUSH_NOTIFICATION_RECEIVED,
+								new Payload(notification.getId()));
+						
 						onNotificationReceived(notification);
 					}
 					
