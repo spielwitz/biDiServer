@@ -33,6 +33,12 @@ class ClientForUserActivation extends Client
 	}
 
 	@Override
+	protected ServerClientBuildCheckResult checkServerClientBuild(String serverBuild)
+	{
+		return new ServerClientBuildCheckResult(true, this.clientBuild);
+	}
+
+	@Override
 	protected String getBuild()
 	{
 		return this.clientBuild;
@@ -41,12 +47,6 @@ class ClientForUserActivation extends Client
 	@Override
 	protected void onConnectionStatusChanged(boolean connected)
 	{
-	}
-
-	@Override
-	protected ServerClientBuildCheckResult checkServerClientBuild(String serverBuild)
-	{
-		return new ServerClientBuildCheckResult(true, this.clientBuild);
 	}
 
 }

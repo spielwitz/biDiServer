@@ -37,34 +37,6 @@ public class DataSet extends DataSetBase
 	private static Gson serializer = new Gson();
 
 	/**
-	 * Create a data set object instance.
-	 * @param id The data set ID
-	 * @param userIds The IDs of the users who are authorized to read and write the data
-	 * @param payloadObject The payload of the data set
-	 */
-	public DataSet(String id, HashSet<String> userIds, Object payloadObject)
-	{
-		super(id, userIds, payloadObject);
-	}
-	
-	/**
-	 * Set the IDs of the users who are authorized to read and write the data.
-	 * @param userIds The IDs of the users who are authorized to read and write the data
-	 */
-	public void setUserIds(HashSet<String> userIds) {
-		this.userIds = userIds;
-	}
-	
-	/**
-	 * Creates a JSON string representation of the data set.
-	 * @return The JSON string
-	 */
-	public String serialize()
-	{
-		return serializer.toJson(this);
-	}
-	
-	/**
 	 * Creates a data set object instance from a JSON string.
 	 * @param jsonString The JSON string
 	 * @return The data set object instance
@@ -79,15 +51,6 @@ public class DataSet extends DataSetBase
 		{
 			return null;
 		}
-	}
-
-	/**
-	 * Creates a JSON string representation of the data set.
-	 * @return The JSON string
-	 */
-	public String toString()
-	{
-		return this.serialize();
 	}
 	
 	static DataSet readFromFile(String fileName)
@@ -106,6 +69,43 @@ public class DataSet extends DataSetBase
 		} catch (Exception e){}		
 		
 		return data;
+	}
+	
+	/**
+	 * Create a data set object instance.
+	 * @param id The data set ID
+	 * @param userIds The IDs of the users who are authorized to read and write the data
+	 * @param payloadObject The payload of the data set
+	 */
+	public DataSet(String id, HashSet<String> userIds, Object payloadObject)
+	{
+		super(id, userIds, payloadObject);
+	}
+	
+	/**
+	 * Creates a JSON string representation of the data set.
+	 * @return The JSON string
+	 */
+	public String serialize()
+	{
+		return serializer.toJson(this);
+	}
+
+	/**
+	 * Set the IDs of the users who are authorized to read and write the data.
+	 * @param userIds The IDs of the users who are authorized to read and write the data
+	 */
+	public void setUserIds(HashSet<String> userIds) {
+		this.userIds = userIds;
+	}
+	
+	/**
+	 * Creates a JSON string representation of the data set.
+	 * @return The JSON string
+	 */
+	public String toString()
+	{
+		return this.serialize();
 	}
 	
 	String writeToFile(String fileName)

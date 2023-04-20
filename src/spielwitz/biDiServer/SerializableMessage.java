@@ -33,6 +33,28 @@ abstract class SerializableMessage
 	private static final String PROPERTY_OBJECT = "obj";
 	private static final String PROPERTY_CLASS_NAME = "class";
 	
+	/**
+	 * Deserialize a message from a JSON string.
+	 * @param json The JSON string
+	 * @return The message
+	 */
+	static SerializableMessage deserialize(String json)
+	{
+		JsonObject jsonObject = serializer.fromJson(json, JsonObject.class);
+		
+		String className = jsonObject.get(PROPERTY_CLASS_NAME).getAsString();
+		JsonElement jsonElementObject = jsonObject.get(PROPERTY_OBJECT);
+		
+		try
+		{
+			return (SerializableMessage) serializer.fromJson(jsonElementObject, Class.forName(className));
+		}
+		catch (Exception x)
+		{
+			return null;
+		}
+	}
+	
 	private Payload payload;
 	
 	/**
@@ -81,27 +103,5 @@ abstract class SerializableMessage
 		jsonObject.addProperty(PROPERTY_CLASS_NAME, this.getClass().getName());
 		
 		return serializer.toJson(jsonObject);
-	}
-	
-	/**
-	 * Deserialize a message from a JSON string.
-	 * @param json The JSON string
-	 * @return The message
-	 */
-	static SerializableMessage deserialize(String json)
-	{
-		JsonObject jsonObject = serializer.fromJson(json, JsonObject.class);
-		
-		String className = jsonObject.get(PROPERTY_CLASS_NAME).getAsString();
-		JsonElement jsonElementObject = jsonObject.get(PROPERTY_OBJECT);
-		
-		try
-		{
-			return (SerializableMessage) serializer.fromJson(jsonElementObject, Class.forName(className));
-		}
-		catch (Exception x)
-		{
-			return null;
-		}
 	}
 }

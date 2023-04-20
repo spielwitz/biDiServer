@@ -27,15 +27,47 @@ import java.security.PublicKey;
  */
 public class ClientConfiguration extends FileBasedSerializableEntity
 {
+	/**
+	 * Get the proposed file name of a client configuration file, composed of user ID, server URL, and server port. 
+	 * @param userId The user ID
+	 * @param url The server URL
+	 * @param port The server port
+	 * @return The proposed file name
+	 */
+	public static String getFileName(String userId, String url, int port)
+	{
+		String userIdTrimmed = userId.replaceAll("[^a-zA-Z0-9.-]", "_");
+		String urlTrimmed = url.replaceAll("[^a-zA-Z0-9.-]", "_");
+		return userIdTrimmed + "_" + urlTrimmed + "_" + port; 
+	}
+	/**
+	 * Read a client configuration from a file.
+	 * @param fileName File name
+	 * @return The client configuration
+	 */
+	public static ClientConfiguration readFromFile(String fileName)
+	{
+		ClientConfiguration clientConfiguration = (ClientConfiguration) readFromFileInternal(fileName, ClientConfiguration.class);
+		
+		if (clientConfiguration != null)
+		{
+			clientConfiguration.serverPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(clientConfiguration.serverPublicKey);
+			clientConfiguration.userPrivateKeyObject = CryptoLib.decodePrivateKeyFromBase64(clientConfiguration.userPrivateKey);
+		}
+		
+		return clientConfiguration;
+	}
 	private String userId;
 	private String url;
 	private int port;
 	private int timeout;
 	private String userPrivateKey;
+	
 	private String serverPublicKey;
 	private String adminEmail;
 	
 	private transient PrivateKey userPrivateKeyObject;
+	
 	private transient PublicKey serverPublicKeyObject;
 	
 	/**
@@ -69,72 +101,6 @@ public class ClientConfiguration extends FileBasedSerializableEntity
 		this.serverPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(this.serverPublicKey);
 		this.userPrivateKeyObject = CryptoLib.decodePrivateKeyFromBase64(this.userPrivateKey); 
 	}
-	
-	/**
-	 * Get the user ID.
-	 * @return The user ID
-	 */
-	public String getUserId() {
-		return userId;
-	}
-	
-	/**
-	 * Set the user ID.
-	 * @param userId The user ID
-	 */
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
-
-	/**
-	 * Get the server URL.
-	 * @return The server URL
-	 */
-	public String getUrl() {
-		return url;
-	}
-	
-	/**
-	 * Set the server URL.
-	 * @param url The server URL
-	 */
-	public void setUrl(String url)
-	{
-		this.url = url;
-	}
-
-	/**
-	 * Set the server port.
-	 * @param port The server port.
-	 */
-	public void setPort(int port)
-	{
-		this.port = port;
-	}
-
-	/**
-	 * Get the server port.
-	 * @return The server port
-	 */
-	public int getPort() {
-		return port;
-	}
-	
-	/**
-	 * Get the connection timeout.
-	 * @return The connection timeout
-	 */
-	public int getTimeout() {
-		return timeout;
-	}
-	
-	/**
-	 * Set the connection timeout.
-	 * @param timeout The connection timeout.
-	 */
-	public void setTimeout(int timeout) {
-		this.timeout = timeout;
-	}
 
 	/** 
 	 * Get the e-mail address of the server administrator.
@@ -145,6 +111,46 @@ public class ClientConfiguration extends FileBasedSerializableEntity
 	}
 	
 	/**
+	 * Get the server port.
+	 * @return The server port
+	 */
+	public int getPort() {
+		return port;
+	}
+
+	/**
+	 * The public RSA key of the server.
+	 * @return Public RSA key
+	 */
+	public PublicKey getServerPublicKeyObject() {
+		return serverPublicKeyObject;
+	}
+
+	/**
+	 * Get the connection timeout.
+	 * @return The connection timeout
+	 */
+	public int getTimeout() {
+		return timeout;
+	}
+	
+	/**
+	 * Get the server URL.
+	 * @return The server URL
+	 */
+	public String getUrl() {
+		return url;
+	}
+	
+	/**
+	 * Get the user ID.
+	 * @return The user ID
+	 */
+	public String getUserId() {
+		return userId;
+	}
+
+	/**
 	 * The private RSA key of the user.
 	 * @return Private RSA key
 	 */
@@ -153,42 +159,36 @@ public class ClientConfiguration extends FileBasedSerializableEntity
 	}
 	
 	/**
-	 * The public RSA key of the server.
-	 * @return Public RSA key
+	 * Set the server port.
+	 * @param port The server port.
 	 */
-	public PublicKey getServerPublicKeyObject() {
-		return serverPublicKeyObject;
+	public void setPort(int port)
+	{
+		this.port = port;
 	}
 	
 	/**
-	 * Get the proposed file name of a client configuration file, composed of user ID, server URL, and server port. 
-	 * @param userId The user ID
+	 * Set the connection timeout.
+	 * @param timeout The connection timeout.
+	 */
+	public void setTimeout(int timeout) {
+		this.timeout = timeout;
+	}
+	
+	/**
+	 * Set the server URL.
 	 * @param url The server URL
-	 * @param port The server port
-	 * @return The proposed file name
 	 */
-	public static String getFileName(String userId, String url, int port)
+	public void setUrl(String url)
 	{
-		String userIdTrimmed = userId.replaceAll("[^a-zA-Z0-9.-]", "_");
-		String urlTrimmed = url.replaceAll("[^a-zA-Z0-9.-]", "_");
-		return userIdTrimmed + "_" + urlTrimmed + "_" + port; 
+		this.url = url;
 	}
 	
 	/**
-	 * Read a client configuration from a file.
-	 * @param fileName File name
-	 * @return The client configuration
+	 * Set the user ID.
+	 * @param userId The user ID
 	 */
-	public static ClientConfiguration readFromFile(String fileName)
-	{
-		ClientConfiguration clientConfiguration = (ClientConfiguration) readFromFileInternal(fileName, ClientConfiguration.class);
-		
-		if (clientConfiguration != null)
-		{
-			clientConfiguration.serverPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(clientConfiguration.serverPublicKey);
-			clientConfiguration.userPrivateKeyObject = CryptoLib.decodePrivateKeyFromBase64(clientConfiguration.userPrivateKey);
-		}
-		
-		return clientConfiguration;
+	public void setUserId(String userId) {
+		this.userId = userId;
 	}
 }

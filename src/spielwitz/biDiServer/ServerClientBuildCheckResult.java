@@ -40,20 +40,20 @@ public class ServerClientBuildCheckResult
 	}
 	
 	/**
-	 * True, if the builds are compatible.
-	 * @return True, if the builds are compatible
-	 */
-	boolean areBuildsCompatible()
-	{
-		return areBuildsCompatible;
-	}
-	
-	/**
 	 * The minimum required build, either of the server, or the client.
 	 * @return The minimum required build, either of the server, or the client
 	 */
 	public String getMinimumComptabileBuild()
 	{
 		return minimumComptabileBuild;
+	}
+	
+	/**
+	 * True, if the builds are compatible.
+	 * @return True, if the builds are compatible
+	 */
+	boolean areBuildsCompatible()
+	{
+		return areBuildsCompatible;
 	}
 }

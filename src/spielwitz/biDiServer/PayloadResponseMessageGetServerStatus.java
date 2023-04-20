@@ -50,21 +50,12 @@ public class PayloadResponseMessageGetServerStatus extends PayloadMessageBase
 	}
 
 	/**
-	 * Get the server start date.
-	 * @return Server start date
+	 * Get the build of the server.
+	 * @return Build of the server
 	 */
-	public long getServerStartDate()
+	public String getBuild()
 	{
-		return serverStartDate;
-	}
-
-	/**
-	 * Get the size of the log in bytes.
-	 * @return Size of the log in bytes
-	 */
-	public long getLogSizeBytes()
-	{
-		return logSizeBytes;
+		return build;
 	}
 
 	/**
@@ -77,11 +68,20 @@ public class PayloadResponseMessageGetServerStatus extends PayloadMessageBase
 	}
 
 	/**
-	 * Get the build of the server.
-	 * @return Build of the server
+	 * Get the size of the log in bytes.
+	 * @return Size of the log in bytes
 	 */
-	public String getBuild()
+	public long getLogSizeBytes()
 	{
-		return build;
+		return logSizeBytes;
+	}
+
+	/**
+	 * Get the server start date.
+	 * @return Server start date
+	 */
+	public long getServerStartDate()
+	{
+		return serverStartDate;
 	}
 }

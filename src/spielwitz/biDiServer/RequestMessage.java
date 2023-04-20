@@ -45,20 +45,20 @@ class RequestMessage extends RequestMessageBase
 	}
 	
 	/**
-	 * Get the type of the request message.
-	 * @return The type of the request message.
-	 */
-	RequestMessageType getType()
-	{
-		return type;
-	}
-
-	/**
 	 * Get the token.
 	 * @return The token
 	 */
 	String getToken()
 	{
 		return token;
+	}
+
+	/**
+	 * Get the type of the request message.
+	 * @return The type of the request message.
+	 */
+	RequestMessageType getType()
+	{
+		return type;
 	}
 }

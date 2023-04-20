@@ -50,6 +50,24 @@ public class Payload
 	}
 	
 	/**
+	 * Get the name of the class of the payload object.
+	 * @return The name of the class of the payload object.
+	 */
+	public String getClassName()
+	{
+		return this.className;
+	}
+	
+	/**
+	 * Get the JSON element representing the payload object.
+	 * @return The payload object as a JSON element
+	 */
+	public JsonElement getJsonElement()
+	{
+		return jsonElement;
+	}
+	
+	/**
 	 * Get the payload object.
 	 * @return Payload object
 	 */
@@ -71,38 +89,20 @@ public class Payload
 	}
 	
 	/**
-	 * Get the name of the class of the payload object.
-	 * @return The name of the class of the payload object.
-	 */
-	public String getClassName()
-	{
-		return this.className;
-	}
-	
-	/**
-	 * Get a JSON string representation of the payload object.
-	 */
-	public String toString()
-	{
-		return serializer.toJson(this.jsonElement);
-	}
-	
-	/**
-	 * Get the JSON element representing the payload object.
-	 * @return The payload object as a JSON element
-	 */
-	public JsonElement getJsonElement()
-	{
-		return jsonElement;
-	}
-
-	/**
 	 * Set the JSON element representing the payload object.
 	 * @param jsonElement The payload object as a JSON element
 	 */
 	public void setJsonElement(JsonElement jsonElement)
 	{
 		this.jsonElement = jsonElement;
+	}
+
+	/**
+	 * Get a JSON string representation of the payload object.
+	 */
+	public String toString()
+	{
+		return serializer.toJson(this.jsonElement);
 	}
 
 	void encryptRsa(PublicKey key)

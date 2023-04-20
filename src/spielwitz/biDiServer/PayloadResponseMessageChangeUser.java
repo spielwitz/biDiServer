@@ -60,34 +60,11 @@ public class PayloadResponseMessageChangeUser extends PayloadMessageBase
 	}
 
 	/**
-	 * Get the user ID.
-	 * @return The user ID
-	 */
-	public String getUserId() {
-		return userId;
-	}
-
-	/**
 	 * Get the Activation code.
 	 * @return The activation cod
 	 */
 	public String getActivationCode() {
 		return activationCode;
-	}
-
-	/**
-	 * Get the server URL.
-	 * @return Server URL
-	 */
-	public String getServerUrl() {
-		return serverUrl;
-	}
-
-	/** Get the server port.
-	 * @return The server port
-	 */
-	public int getServerPort() {
-		return serverPort;
 	}
 
 	/**
@@ -98,11 +75,34 @@ public class PayloadResponseMessageChangeUser extends PayloadMessageBase
 		return adminEmail;
 	}
 
+	/** Get the server port.
+	 * @return The server port
+	 */
+	public int getServerPort() {
+		return serverPort;
+	}
+
 	/**
 	 * Get the public RSA key of the server as a string.
 	 * @return The public RSA key of the server as a string
 	 */
 	public String getServerPublicKey() {
 		return serverPublicKey;
+	}
+
+	/**
+	 * Get the server URL.
+	 * @return Server URL
+	 */
+	public String getServerUrl() {
+		return serverUrl;
+	}
+
+	/**
+	 * Get the user ID.
+	 * @return The user ID
+	 */
+	public String getUserId() {
+		return userId;
 	}
 }

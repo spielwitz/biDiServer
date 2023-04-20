@@ -51,27 +51,11 @@ public class ResponseInfo
 	}
 
 	/**
-	 * True, if the request was successful.
-	 * @return True, if the request was successful
-	 */
-	public boolean isSuccess() {
-		return success;
-	}
-
-	/**
 	 * Get the text message.
 	 * @return Text message
 	 */
 	public String getMessage() {
 		return message;
-	}
-	
-	/**
-	 * Set the text message.
-	 * @param message Text message
-	 */
-	public void setMessage(String message) {
-		this.message = message;
 	}
 
 	/**
@@ -80,6 +64,22 @@ public class ResponseInfo
 	 */
 	public String getServerBuild() {
 		return serverBuild;
+	}
+	
+	/**
+	 * True, if the request was successful.
+	 * @return True, if the request was successful
+	 */
+	public boolean isSuccess() {
+		return success;
+	}
+
+	/**
+	 * Set the text message.
+	 * @param message Text message
+	 */
+	public void setMessage(String message) {
+		this.message = message;
 	}
 	
 	/**

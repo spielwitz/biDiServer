@@ -37,24 +37,18 @@ class ResponseMessage extends SerializableMessage
 	
 	/**
 	 * Constructor.
+	 * @param success True, if the request was successful
 	 * @param payload Payload
+	 * @param textProperty Text property
 	 */
-	ResponseMessage(Payload payload)
-	{
-		this(true, null, payload);
-	}
-	
-	/**
-	 * Constructor.
-	 * @param payload Payload
-	 * @param info Response info
-	 */
-	ResponseMessage(Payload payload, ResponseInfo info)
+	ResponseMessage(boolean success, Payload payload, TextProperty textProperty)
 	{
 		super(payload);
-		this.info = info;
+		
+		this.info = new ResponseInfo(success);
+		this.textProperty = textProperty;
 	}
-
+	
 	/**
 	 * Constructor.
 	 * @param success True, if the request was successful
@@ -70,25 +64,30 @@ class ResponseMessage extends SerializableMessage
 
 	/**
 	 * Constructor.
-	 * @param success True, if the request was successful
 	 * @param payload Payload
-	 * @param textProperty Text property
 	 */
-	ResponseMessage(boolean success, Payload payload, TextProperty textProperty)
+	ResponseMessage(Payload payload)
+	{
+		this(true, null, payload);
+	}
+
+	/**
+	 * Constructor.
+	 * @param payload Payload
+	 * @param info Response info
+	 */
+	ResponseMessage(Payload payload, ResponseInfo info)
 	{
 		super(payload);
-		
-		this.info = new ResponseInfo(success);
-		this.textProperty = textProperty;
+		this.info = info;
 	}
 	
 	/**
-	 * True, if the request was successful.
-	 * @return True, if the request was successful.
+	 * Get the response info.
+	 * @return The response info
 	 */
-	boolean isSuccess()
-	{
-		return this.info.isSuccess();
+	ResponseInfo getInfo() {
+		return info;
 	}
 
 	/**
@@ -101,6 +100,32 @@ class ResponseMessage extends SerializableMessage
 	}
 	
 	/**
+	 * Get the server build.
+	 * @return The server build
+	 */
+	String getServerBuild()
+	{
+		return this.info.getServerBuild();
+	}
+
+	/**
+	 * Get the text property.
+	 * @return The text property.
+	 */
+	TextProperty getTextProperty() {
+		return this.textProperty;
+	}
+	
+	/**
+	 * True, if the request was successful.
+	 * @return True, if the request was successful.
+	 */
+	boolean isSuccess()
+	{
+		return this.info.isSuccess();
+	}
+	
+	/**
 	 * Set the text message.
 	 * @param message The text message
 	 */
@@ -110,36 +135,11 @@ class ResponseMessage extends SerializableMessage
 	}
 
 	/**
-	 * Get the server build.
-	 * @return The server build
-	 */
-	String getServerBuild()
-	{
-		return this.info.getServerBuild();
-	}
-	
-	/**
 	 * Set the server build.
 	 * @param build The server build.
 	 */
 	void setServerBuild(String build)
 	{
 		this.info.setServerBuild(build);
-	}
-	
-	/**
-	 * Get the text property.
-	 * @return The text property.
-	 */
-	TextProperty getTextProperty() {
-		return this.textProperty;
-	}
-
-	/**
-	 * Get the response info.
-	 * @return The response info
-	 */
-	ResponseInfo getInfo() {
-		return info;
 	}
 }

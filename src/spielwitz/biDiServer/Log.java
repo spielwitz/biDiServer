@@ -32,7 +32,25 @@ import java.util.Calendar;
 
 class Log
 {
+	private static String getLocalizedDateString()
+	{
+		Instant instant = Instant.ofEpochMilli(System.currentTimeMillis());
+	    LocalDateTime date = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
+	    
+	    String dateBuildStyle = date.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+	    
+		String year = dateBuildStyle.substring(0, 4);
+		String month = dateBuildStyle.substring(4, 6);
+		String day = dateBuildStyle.substring(6, 8);
+		
+		String hour = dateBuildStyle.substring(8, 10);
+		String minute = dateBuildStyle.substring(10, 12);
+		String second = dateBuildStyle.substring(12, 14);
+		
+		return TextProperties.getMessageText(TextProperties.DateFormat(day, month, year, hour, minute, second));
+	}
 	private Path logPath;
+	
 	private Server server;
 	
 	Log(Server server, Path logPath)
@@ -57,6 +75,44 @@ class Log
 		try {
 		    Files.write(this.logPath, sb.toString().getBytes("UTF-8"), StandardOpenOption.CREATE);
 		}catch (IOException e) {
+		}
+	}
+	
+	PayloadResponseMessageGetLog getLog()
+	{
+		File file = new File(this.logPath.toString());
+		PayloadResponseMessageGetLog payloadResponse = null; 
+		
+		if (file.exists())
+		{
+			synchronized(this.logPath)
+			{
+				try
+		        {
+					payloadResponse = new PayloadResponseMessageGetLog(
+							file.getName(),
+							new String (Files.readAllBytes(this.logPath)));
+		        }
+		        catch (Exception e) 
+		        {
+		        }
+			}
+		}
+		
+		return payloadResponse;
+	}
+	
+	long getSize()
+	{
+		File file = new File(this.logPath.toString());
+		
+		if (file.exists())
+		{
+			return file.length();
+		}
+		else
+		{
+			return 0;
 		}
 	}
 	
@@ -117,61 +173,5 @@ class Log
 			}catch (IOException e) {
 			}
 		}
-	}
-	
-	long getSize()
-	{
-		File file = new File(this.logPath.toString());
-		
-		if (file.exists())
-		{
-			return file.length();
-		}
-		else
-		{
-			return 0;
-		}
-	}
-	
-	PayloadResponseMessageGetLog getLog()
-	{
-		File file = new File(this.logPath.toString());
-		PayloadResponseMessageGetLog payloadResponse = null; 
-		
-		if (file.exists())
-		{
-			synchronized(this.logPath)
-			{
-				try
-		        {
-					payloadResponse = new PayloadResponseMessageGetLog(
-							file.getName(),
-							new String (Files.readAllBytes(this.logPath)));
-		        }
-		        catch (Exception e) 
-		        {
-		        }
-			}
-		}
-		
-		return payloadResponse;
-	}
-	
-	private static String getLocalizedDateString()
-	{
-		Instant instant = Instant.ofEpochMilli(System.currentTimeMillis());
-	    LocalDateTime date = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
-	    
-	    String dateBuildStyle = date.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-	    
-		String year = dateBuildStyle.substring(0, 4);
-		String month = dateBuildStyle.substring(4, 6);
-		String day = dateBuildStyle.substring(6, 8);
-		
-		String hour = dateBuildStyle.substring(8, 10);
-		String minute = dateBuildStyle.substring(10, 12);
-		String second = dateBuildStyle.substring(12, 14);
-		
-		return TextProperties.getMessageText(TextProperties.DateFormat(day, month, year, hour, minute, second));
 	}
 }

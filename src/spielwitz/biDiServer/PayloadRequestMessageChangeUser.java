@@ -56,14 +56,6 @@ public class PayloadRequestMessageChangeUser extends PayloadMessageBase
 	}
 	
 	/**
-	 * Get the user ID.
-	 * @return The user ID
-	 */
-	public String getUserId() {
-		return userId;
-	}
-	
-	/**
 	 * Get additional custom user data.
 	 * @return Custom user data as key-value-pairs
 	 */
@@ -77,6 +69,14 @@ public class PayloadRequestMessageChangeUser extends PayloadMessageBase
 	 */
 	public String getName() {
 		return name;
+	}
+	
+	/**
+	 * Get the user ID.
+	 * @return The user ID
+	 */
+	public String getUserId() {
+		return userId;
 	}
 	
 	/**

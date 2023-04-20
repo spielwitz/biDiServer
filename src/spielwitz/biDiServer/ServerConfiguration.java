@@ -27,28 +27,45 @@ import java.security.PrivateKey;
  */
 public class ServerConfiguration extends FileBasedSerializableEntity
 {
-	private String url;
-	private int port;
-	private String adminEmail;
-	private LogLevel logLevel;
-	
-	private String serverPrivateKey; 
-	private String serverPublicKey;	
-	
-	private String locale;
-	
-	private transient PrivateKey serverPrivateKeyObject;
-	
 	/**
 	 * The default log level of a server (Information)
 	 */
 	public static final LogLevel SERVER_DEFAULT_LOGLEVEL = LogLevel.Information;
-	
 	/**
 	 * The default server port (56084)
 	 */
 	public static final int SERVER_PORT = 56084;
+	/**
+	 * Read a server configuration from a file.
+	 * @param fileName File name
+	 * @return The server configuration
+	 */
+	public static ServerConfiguration readFromFile(String fileName)
+	{
+		ServerConfiguration serverConfiguration = (ServerConfiguration) readFromFileInternal(fileName, ServerConfiguration.class);
+		
+		if (serverConfiguration != null)
+		{
+			serverConfiguration.serverPrivateKeyObject = CryptoLib.decodePrivateKeyFromBase64(serverConfiguration.serverPrivateKey);
+		}
+		
+		return serverConfiguration;
+	}
+	private String url;
 	
+	private int port; 
+	private String adminEmail;	
+	
+	private LogLevel logLevel;
+	
+	private String serverPrivateKey;
+	
+	private String serverPublicKey;
+	
+	private String locale;
+	
+	private transient PrivateKey serverPrivateKeyObject;
+
 	/**
 	 * Create a server configuration object.
 	 * @param url The server URL
@@ -79,61 +96,12 @@ public class ServerConfiguration extends FileBasedSerializableEntity
 		this.serverPrivateKeyObject = CryptoLib.decodePrivateKeyFromBase64(this.serverPrivateKey);
 	}
 
-	/**
-	 * Get the server URL.
-	 * @return The server URL
-	 */
-	public String getUrl() {
-		return url;
-	}
-
-	/**
-	 * Get the server port.
-	 * @return The server port
-	 */
-	public int getPort() {
-		return port;
-	}
-
 	/** 
 	 * Get the e-mail address of the server administrator.
 	 * @return The e-mail address of the server administrator.
 	 */
 	public String getAdminEmail() {
 		return adminEmail;
-	}
-
-	/**
-	 * Get the minimum log level.
-	 * @return The minimum log level
-	 */
-	public LogLevel getLogLevel() {
-		return logLevel;
-	}
-	
-	/**
-	 * Set or change the minimum log level. 
-	 * @param logLevel The minimum log level.
-	 */
-	void setLogLevel(LogLevel logLevel)
-	{
-		this.logLevel = logLevel;
-	}
-
-	/**
-	 * Get the private RSA key of the server as a string
-	 * @return The private RSA key of the server as a string
-	 */
-	String getServerPrivateKey() {
-		return serverPrivateKey;
-	}
-
-	/**
-	 * Get the public RSA key of the server as a string
-	 * @return The public RSA key of the server as a string
-	 */
-	String getServerPublicKey() {
-		return serverPublicKey;
 	}
 
 	/**
@@ -145,6 +113,38 @@ public class ServerConfiguration extends FileBasedSerializableEntity
 	}
 
 	/**
+	 * Get the minimum log level.
+	 * @return The minimum log level
+	 */
+	public LogLevel getLogLevel() {
+		return logLevel;
+	}
+	
+	/**
+	 * Get the server port.
+	 * @return The server port
+	 */
+	public int getPort() {
+		return port;
+	}
+
+	/**
+	 * Get the server URL.
+	 * @return The server URL
+	 */
+	public String getUrl() {
+		return url;
+	}
+
+	/**
+	 * Get the private RSA key of the server as a string
+	 * @return The private RSA key of the server as a string
+	 */
+	String getServerPrivateKey() {
+		return serverPrivateKey;
+	}
+
+	/**
 	 * Get the private RSA key of the server.
 	 * @return The private RSA key of the server
 	 */
@@ -153,19 +153,19 @@ public class ServerConfiguration extends FileBasedSerializableEntity
 	}
 
 	/**
-	 * Read a server configuration from a file.
-	 * @param fileName File name
-	 * @return The server configuration
+	 * Get the public RSA key of the server as a string
+	 * @return The public RSA key of the server as a string
 	 */
-	public static ServerConfiguration readFromFile(String fileName)
+	String getServerPublicKey() {
+		return serverPublicKey;
+	}
+
+	/**
+	 * Set or change the minimum log level. 
+	 * @param logLevel The minimum log level.
+	 */
+	void setLogLevel(LogLevel logLevel)
 	{
-		ServerConfiguration serverConfiguration = (ServerConfiguration) readFromFileInternal(fileName, ServerConfiguration.class);
-		
-		if (serverConfiguration != null)
-		{
-			serverConfiguration.serverPrivateKeyObject = CryptoLib.decodePrivateKeyFromBase64(serverConfiguration.serverPrivateKey);
-		}
-		
-		return serverConfiguration;
+		this.logLevel = logLevel;
 	}
 }
