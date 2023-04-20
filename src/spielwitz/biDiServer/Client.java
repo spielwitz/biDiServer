@@ -546,7 +546,7 @@ public abstract class Client
 	protected abstract void onConnectionStatusChanged(boolean connected);
 	
 	/**
-	 * Is called when a notification is received through the notification socket.
+	 * Is called when notifications is received through the notification socket.
 	 * @param notification The notification
 	 */
 	protected abstract void onNotificationReceived(Notification notification);
@@ -600,19 +600,17 @@ public abstract class Client
 				{
 					setConnectionStatus(true);
 					
-					Notification notification = 
-							(Notification) Notification.deserialize(
+					Notifications notifications = 
+							(Notifications) Notifications.deserialize(
 								CryptoLib.receiveStringRsaEncrypted(
 									in, 
 									getConfig().getUserPrivateKeyObject()));
 					
-					if (notification != null && !notification.isPing())
+					if (notifications != null)
 					{
-						PushNotificationReceivedThread pushNotificationReceivedThread =
-								new PushNotificationReceivedThread(notification.getId());
+						PushNotificationForwarderThread pushNotificationReceivedThread =
+								new PushNotificationForwarderThread(notifications);
 						pushNotificationReceivedThread.start();
-						
-						onNotificationReceived(notification);
 					}
 					
 				} while (true);
@@ -657,24 +655,32 @@ public abstract class Client
 		}
 	}
 	
-	private class PushNotificationReceivedThread extends Thread
+	private class PushNotificationForwarderThread extends Thread
 	{
-		private String notificationId;
+		private Notifications notifications;
 		
-		private PushNotificationReceivedThread(String notificationId)
+		private PushNotificationForwarderThread(Notifications notifications)
 		{
-			this.notificationId = notificationId;
+			this.notifications = notifications;
 		}
 		
 		public void run()
 		{
-			try
+			for (Notification notification: this.notifications.getNotifications())
 			{
-				sendRequestMessage(
-						RequestMessageType.PUSH_NOTIFICATION_RECEIVED,
-						new Payload(this.notificationId));
+				if (notification.isPing())
+					continue;
+				
+				try
+				{
+					sendRequestMessage(
+							RequestMessageType.PUSH_NOTIFICATION_RECEIVED,
+							new Payload(notification.getId()));
+					
+					onNotificationReceived(notification);
+				}
+				catch (Exception x) {}
 			}
-			catch (Exception x) {}
 		}
 	}
 }

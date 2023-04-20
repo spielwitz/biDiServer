@@ -1410,17 +1410,13 @@ public abstract class Server
 																		getPathToNotificatiosFolder(), 
 																		userId);
 			
-			for (Notification notification: notifications)
+			try
 			{
-				try
-				{
-					this.executePushNotification(notification, out);
-				}
-				catch (Exception e)
-				{
-					closeSocket = true;
-					break;
-				}
+				this.executePushNotifications(new Notifications(notifications), out);
+			}
+			catch (Exception e)
+			{
+				closeSocket = true;
 			}
 			
 			while (!closeSocket)
@@ -1437,7 +1433,9 @@ public abstract class Server
 						}
 						else
 						{
-							this.executePushNotification(this.commStruct.notification, out);
+							this.executePushNotifications(
+									new Notifications(this.commStruct.notification), 
+									out);
 						}
 					}
 					catch (SocketException e)
@@ -1493,11 +1491,11 @@ public abstract class Server
 			}
 		}
 		
-		private void executePushNotification(Notification notification, OutputStream out) throws Exception
+		private void executePushNotifications(Notifications notifications, OutputStream out) throws Exception
 		{
 			CryptoLib.sendStringRsaEncrypted(
 					out, 
-					notification.serialize(), 
+					notifications.serialize(), 
 					getUser(this.userId).getUserPublicKeyObject());
 		}
 	}
