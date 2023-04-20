@@ -606,7 +606,7 @@ public abstract class Client
 									in, 
 									getConfig().getUserPrivateKeyObject()));
 					
-					if (!notification.isPing())
+					if (notification != null && !notification.isPing())
 					{
 						PushNotificationReceivedThread pushNotificationReceivedThread =
 								new PushNotificationReceivedThread(notification.getId());
@@ -668,9 +668,13 @@ public abstract class Client
 		
 		public void run()
 		{
-			sendRequestMessage(
-					RequestMessageType.PUSH_NOTIFICATION_RECEIVED,
-					new Payload(this.notificationId));
+			try
+			{
+				sendRequestMessage(
+						RequestMessageType.PUSH_NOTIFICATION_RECEIVED,
+						new Payload(this.notificationId));
+			}
+			catch (Exception x) {}
 		}
 	}
 }

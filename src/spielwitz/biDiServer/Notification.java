@@ -111,16 +111,21 @@ public class Notification
 					userId,
 					fileName).toFile();
 			
-			Notification notification = null;
-			
 			try (BufferedReader br = new BufferedReader(
 					new FileReader(file)))
 			{
 				String json = br.readLine();
-				notification = Notification.deserialize(json);
+				br.close();
+				
+				Notification notification = Notification.deserialize(json);
 				
 				if (notification != null)
-					notifications.add(notification);
+				{
+					if (notification.id != null)
+						notifications.add(notification);
+					else
+						file.delete();
+				}
 			} catch (Exception e)
 			{
 			}

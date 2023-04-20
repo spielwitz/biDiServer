@@ -1132,12 +1132,12 @@ public abstract class Server
 		
 	private void onRequestMessageReceivedPushNotificationReceived(MessageProcessingContainer container)
 	{
-		String notificationMessageReceived = (String)container.getRequestMessage().getPayloadObject();
+		String notificationId = (String)container.getRequestMessage().getPayloadObject();
 		
 		Notification.deleteFile(
 				Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_NOTIFICATIONS).toString(),
 				container.getUserId(),
-				notificationMessageReceived);
+				notificationId);
 		
 		container.setResponseMessage(new ResponseMessage());
 	}
