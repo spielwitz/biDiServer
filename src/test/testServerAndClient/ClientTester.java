@@ -49,7 +49,6 @@ import com.google.gson.Gson;
 import spielwitz.biDiServer.ClientConfiguration;
 import spielwitz.biDiServer.DataSet;
 import spielwitz.biDiServer.LogLevel;
-import spielwitz.biDiServer.Notification;
 import spielwitz.biDiServer.Payload;
 import spielwitz.biDiServer.PayloadRequestMessageChangeUser;
 import spielwitz.biDiServer.PayloadResponseGetDataSetInfosOfUser;
@@ -243,14 +242,17 @@ public class ClientTester extends JFrame implements IClientTesterCallback, Actio
 	}
 
 	@Override
-	public void onNotificationReceived(String userId, Notification notification)
+	public void onNotificationReceived(
+			String userId,
+			String sender,
+			ArrayList<String> recipients,
+			long dateCreated,
+			Object payload)
 	{
 		StringBuilder sb = new StringBuilder();
 		
-		Object obj = notification.getPayloadObject(this.conf.getUserPrivateKeyObject());
-		
 		sb.append("---------------------------------------------------\n");
-		sb.append("Notification received: " +  new Payload(obj).toString() + "\n");
+		sb.append("Notification received: " +  new Payload(payload).toString() + "\n");
 		
 		this.taOutput.append(sb.toString());
 	}

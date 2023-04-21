@@ -20,7 +20,7 @@ import com.google.gson.Gson;
  * @author spielwitz
  *
  */
-public class Notification
+class Notification
 {
 	private static int counter;
 	private static Gson serializer = new Gson();
@@ -51,23 +51,6 @@ public class Notification
 			catch (Exception x) {}
 		}
 	}
-	/**
-	 * Get a notification from a JSON string.
-	 * @param jsonString The JSON string
-	 * @return The notification
-	 */
-	static Notification deserialize(String jsonString)
-	{
-		try
-		{
-			return serializer.fromJson(jsonString, Notification.class);
-		}
-		catch (Exception x)
-		{
-			return null;
-		}
-	}
-
 	/**
 	 * Get all notifications of a user currently stored in files.
 	 * @param pathToNotificationsFolder Folder path on the server where notifications are stored
@@ -116,6 +99,23 @@ public class Notification
 		}
 		
 		return notifications;
+	}
+
+	/**
+	 * Get a notification from a JSON string.
+	 * @param jsonString The JSON string
+	 * @return The notification
+	 */
+	private static Notification deserialize(String jsonString)
+	{
+		try
+		{
+			return serializer.fromJson(jsonString, Notification.class);
+		}
+		catch (Exception x)
+		{
+			return null;
+		}
 	}
 	private boolean ping;
 	private String sender;
@@ -171,12 +171,26 @@ public class Notification
 	}
 	
 	/**
+	 * Get a JSON representation of the notification.
+	 * @return JSON representation of the notification
+	 */
+	public String toString()
+	{
+		return this.serialize();
+	}
+	
+	/**
 	 * Get the date when the notification was created on the server.
 	 * @return The date when the notification was created on the server.
 	 */
-	public long getDateCreated()
+	long getDateCreated()
 	{
 		return dateCreated;
+	}
+	
+	String getId()
+	{
+		return this.id;
 	}
 	
 	/**
@@ -184,7 +198,7 @@ public class Notification
 	 * @param key The private RSA key of the recipient
 	 * @return The notification payload object. Or null, if the the notification payload was null or could not be decrypted with the private RSA key.
 	 */
-	public Object getPayloadObject(PrivateKey key)
+	Object getPayloadObject(PrivateKey key)
 	{
 		if (this.payloadEncrypted != null)
 		{
@@ -195,12 +209,12 @@ public class Notification
 			return null;
 		}
 	}
-	
+
 	/**
 	 * Get the user IDs of the recipients of the notification.
 	 * @return The user IDs of the recipients of the notification
 	 */
-	public ArrayList<String> getRecipients()
+	ArrayList<String> getRecipients()
 	{
 		return recipients;
 	}
@@ -209,23 +223,9 @@ public class Notification
 	 * Get the user ID of the sender of the notification.
 	 * @return The user ID of the sender of the notification
 	 */
-	public String getSender()
+	String getSender()
 	{
 		return sender;
-	}
-
-	/**
-	 * Get a JSON representation of the notification.
-	 * @return JSON representation of the notification
-	 */
-	public String toString()
-	{
-		return this.serialize();
-	}
-	
-	String getId()
-	{
-		return this.id;
 	}
 	
 	/**
@@ -235,15 +235,6 @@ public class Notification
 	boolean isPing()
 	{
 		return ping;
-	}
-	
-	/**
-	 * Get a JSON representation of the notification.
-	 * @return JSON notification of the message
-	 */
-	String serialize()
-	{
-		return serializer.toJson(this);
 	}
 	
 	/**
@@ -275,5 +266,14 @@ public class Notification
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Get a JSON representation of the notification.
+	 * @return JSON notification of the message
+	 */
+	private String serialize()
+	{
+		return serializer.toJson(this);
 	}
 }

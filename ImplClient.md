@@ -40,10 +40,9 @@ public class MyClient extends Client
 	}
 
 	@Override
-	protected void onNotificationReceived(Notification arg0)
+	protected void onNotificationReceived(String arg0, ArrayList<String> arg1, long arg2, Object arg3)
 	{
 		// TODO Auto-generated method stub
-		
 	}
 }
 ```
@@ -96,8 +95,8 @@ This method is called by the client when the connection status of the notificati
 
 You may implement use case-specific coding here, for example, updating the connection status indicator on your client application UI.
 
-## `onNotificationReceived(Notification notification)`
+## `onNotificationReceived(String sender, ArrayList<String> recipients, long dateCreated, Object payload)`
 
-The method is called when the client receives a push notification from the server. The parameter `notification` of class [`Notification`](src/spielwitz/biDiServer/Notification.java) contains the payload of the notification. The payload is always custom-defined. See document [Implementing Custom Notifications](ImplCustomNotifications) for details.
+The method is called when the client receives a push notification from the server. he payload is always custom-defined. See document [Implementing Custom Notifications](ImplCustomNotifications) for details.
 
 [Back to overview](README.md)

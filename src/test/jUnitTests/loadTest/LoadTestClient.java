@@ -17,11 +17,11 @@
 
 package test.jUnitTests.loadTest;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 import spielwitz.biDiServer.Client;
 import spielwitz.biDiServer.ClientConfiguration;
-import spielwitz.biDiServer.Notification;
 import spielwitz.biDiServer.Response;
 import spielwitz.biDiServer.ServerClientBuildCheckResult;
 
@@ -52,9 +52,13 @@ public class LoadTestClient extends Client
 	}
 
 	@Override
-	protected void onNotificationReceived(Notification notificationMessage)
+	protected void onNotificationReceived(
+			String sender,
+			ArrayList<String> recipients,
+			long dateCreated,
+			Object payload)
 	{
-		UUID message = (UUID) notificationMessage.getPayloadObject(this.getConfig().getUserPrivateKeyObject());
+		UUID message = (UUID)payload;
 		
 		this.clientActionThread.onNotificationReceived(message);
 	}

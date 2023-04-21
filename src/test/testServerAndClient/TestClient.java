@@ -17,9 +17,10 @@
 
 package test.testServerAndClient;
 
+import java.util.ArrayList;
+
 import spielwitz.biDiServer.Client;
 import spielwitz.biDiServer.ClientConfiguration;
-import spielwitz.biDiServer.Notification;
 import spielwitz.biDiServer.Response;
 import spielwitz.biDiServer.ResponseInfo;
 import spielwitz.biDiServer.ServerClientBuildCheckResult;
@@ -35,9 +36,18 @@ public class TestClient extends Client
 	}
 	
 	@Override
-	public void onNotificationReceived(Notification notification)
+	public void onNotificationReceived(
+			String sender,
+			ArrayList<String> recipients,
+			long dateCreated,
+			Object payload)
 	{
-		this.callback.onNotificationReceived(this.getUserId(), notification);
+		this.callback.onNotificationReceived(
+				this.getUserId(),
+				sender,
+				recipients,
+				dateCreated,
+				payload);
 	}
 
 	@Override

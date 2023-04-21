@@ -17,6 +17,8 @@
 
 package spielwitz.biDiServer;
 
+import java.util.ArrayList;
+
 class ClientForUserActivation extends Client
 {
 	private String clientBuild;
@@ -28,7 +30,10 @@ class ClientForUserActivation extends Client
 	}
 
 	@Override
-	public void onNotificationReceived(Notification notification)
+	public void onNotificationReceived(String sender,
+			ArrayList<String> recipients,
+			long dateCreated,
+			Object payload)
 	{
 	}
 

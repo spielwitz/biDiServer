@@ -547,9 +547,16 @@ public abstract class Client
 	
 	/**
 	 * Is called when notifications is received through the notification socket.
-	 * @param notification The notification
+	 * @param sender Sender of the notification
+	 * @param recipients Recipients of the notification
+	 * @param dateCreated Date when the notification was created
+	 * @param payload Payload of the notification
 	 */
-	protected abstract void onNotificationReceived(Notification notification);
+	protected abstract void onNotificationReceived(
+			String sender,
+			ArrayList<String> recipients,
+			long dateCreated,
+			Object payload);
 	
 	private void establishNotificationSocket(Socket kkSocket)
 	{
@@ -677,7 +684,11 @@ public abstract class Client
 							RequestMessageType.PUSH_NOTIFICATION_RECEIVED,
 							new Payload(notification.getId()));
 					
-					onNotificationReceived(notification);
+					onNotificationReceived(
+							notification.getSender(),
+							notification.getRecipients(),
+							notification.getDateCreated(),
+							notification.getPayloadObject(getConfig().getUserPrivateKeyObject()));
 				}
 				catch (Exception x) {}
 			}
