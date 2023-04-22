@@ -1,19 +1,3 @@
-/**	BiDiServer - a library that provides bi-directional communication between
-	a server and clients.
-	
-    Copyright (C) 2022 Michael Schweitzer, spielwitz@icloud.com
-	https://github.com/spielwitz/biDiServer
-	
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>. **/
 
 package spielwitz.biDiServer;
 
@@ -36,7 +20,7 @@ import com.google.gson.Gson;
  * @author spielwitz
  *
  */
-public class Notification
+class Notification
 {
 	private static int counter;
 	private static Gson serializer = new Gson();
@@ -68,23 +52,6 @@ public class Notification
 		}
 	}
 	/**
-	 * Get a notification from a JSON string.
-	 * @param jsonString The JSON string
-	 * @return The notification
-	 */
-	static Notification deserialize(String jsonString)
-	{
-		try
-		{
-			return serializer.fromJson(jsonString, Notification.class);
-		}
-		catch (Exception x)
-		{
-			return null;
-		}
-	}
-
-	/**
 	 * Get all notifications of a user currently stored in files.
 	 * @param pathToNotificationsFolder Folder path on the server where notifications are stored
 	 * @param userId The user ID of the recipient of the message
@@ -111,22 +78,44 @@ public class Notification
 					userId,
 					fileName).toFile();
 			
-			Notification notification = null;
-			
 			try (BufferedReader br = new BufferedReader(
 					new FileReader(file)))
 			{
 				String json = br.readLine();
-				notification = Notification.deserialize(json);
+				br.close();
+				
+				Notification notification = Notification.deserialize(json);
 				
 				if (notification != null)
-					notifications.add(notification);
+				{
+					if (notification.id != null)
+						notifications.add(notification);
+					else
+						file.delete();
+				}
 			} catch (Exception e)
 			{
 			}
 		}
 		
 		return notifications;
+	}
+
+	/**
+	 * Get a notification from a JSON string.
+	 * @param jsonString The JSON string
+	 * @return The notification
+	 */
+	private static Notification deserialize(String jsonString)
+	{
+		try
+		{
+			return serializer.fromJson(jsonString, Notification.class);
+		}
+		catch (Exception x)
+		{
+			return null;
+		}
 	}
 	private boolean ping;
 	private String sender;
@@ -182,12 +171,26 @@ public class Notification
 	}
 	
 	/**
+	 * Get a JSON representation of the notification.
+	 * @return JSON representation of the notification
+	 */
+	public String toString()
+	{
+		return this.serialize();
+	}
+	
+	/**
 	 * Get the date when the notification was created on the server.
 	 * @return The date when the notification was created on the server.
 	 */
-	public long getDateCreated()
+	long getDateCreated()
 	{
 		return dateCreated;
+	}
+	
+	String getId()
+	{
+		return this.id;
 	}
 	
 	/**
@@ -195,7 +198,7 @@ public class Notification
 	 * @param key The private RSA key of the recipient
 	 * @return The notification payload object. Or null, if the the notification payload was null or could not be decrypted with the private RSA key.
 	 */
-	public Object getPayloadObject(PrivateKey key)
+	Object getPayloadObject(PrivateKey key)
 	{
 		if (this.payloadEncrypted != null)
 		{
@@ -206,12 +209,12 @@ public class Notification
 			return null;
 		}
 	}
-	
+
 	/**
 	 * Get the user IDs of the recipients of the notification.
 	 * @return The user IDs of the recipients of the notification
 	 */
-	public ArrayList<String> getRecipients()
+	ArrayList<String> getRecipients()
 	{
 		return recipients;
 	}
@@ -220,23 +223,9 @@ public class Notification
 	 * Get the user ID of the sender of the notification.
 	 * @return The user ID of the sender of the notification
 	 */
-	public String getSender()
+	String getSender()
 	{
 		return sender;
-	}
-
-	/**
-	 * Get a JSON representation of the notification.
-	 * @return JSON representation of the notification
-	 */
-	public String toString()
-	{
-		return this.serialize();
-	}
-	
-	String getId()
-	{
-		return this.id;
 	}
 	
 	/**
@@ -246,15 +235,6 @@ public class Notification
 	boolean isPing()
 	{
 		return ping;
-	}
-	
-	/**
-	 * Get a JSON representation of the notification.
-	 * @return JSON notification of the message
-	 */
-	String serialize()
-	{
-		return serializer.toJson(this);
 	}
 	
 	/**
@@ -286,5 +266,14 @@ public class Notification
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Get a JSON representation of the notification.
+	 * @return JSON notification of the message
+	 */
+	private String serialize()
+	{
+		return serializer.toJson(this);
 	}
 }

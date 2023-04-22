@@ -51,15 +51,6 @@ public abstract class DataSetBase
 	}
 
 	/**
-	 * Get the IDs of the users who are authorized to read and write the data set.
-	 * @return The user IDs
-	 */
-	public HashSet<String> getUserIds()
-	{
-		return userIds;
-	}
-	
-	/**
 	 * Get the payload of a data set.
 	 * @return The payload
 	 */
@@ -67,7 +58,7 @@ public abstract class DataSetBase
 	{
 		return payload;
 	}
-
+	
 	/**
 	 * Get the payload object of the data set.
 	 * @return The payload object
@@ -75,6 +66,15 @@ public abstract class DataSetBase
 	public Object getPayloadObject()
 	{
 		return this.payload.getObject();
+	}
+
+	/**
+	 * Get the IDs of the users who are authorized to read and write the data set.
+	 * @return The user IDs
+	 */
+	public HashSet<String> getUserIds()
+	{
+		return userIds;
 	}
 	
 	/**

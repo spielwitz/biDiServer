@@ -40,20 +40,20 @@ class RequestMessageBase extends SerializableMessage
 	}
 
 	/**
-	 * Get the session ID.
-	 * @return The session ID
-	 */
-	String getSessionId()
-	{
-		return sessionId;
-	}
-	
-	/**
 	 * Get the client build.
 	 * @return The client build.
 	 */
 	String getClientBuild()
 	{
 		return clientBuild;
+	}
+	
+	/**
+	 * Get the session ID.
+	 * @return The session ID
+	 */
+	String getSessionId()
+	{
+		return sessionId;
 	}
 }

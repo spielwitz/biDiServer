@@ -17,48 +17,39 @@
 
 package spielwitz.biDiServer;
 
-/**
- * A request message sent to the server.
- * @author spielwitz
- *
- */
-class RequestMessage extends RequestMessageBase
+import java.util.ArrayList;
+
+import com.google.gson.Gson;
+
+class Notifications
 {
-	private RequestMessageType type;
+	private static Gson serializer = new Gson();
 	
-	private String token;
-	
-	/**
-	 * Constructor.
-	 * @param type Type of the request message
-	 * @param sessionId Session ID
-	 * @param token Token
-	 * @param clientBuild Client build
-	 * @param payload Message payload
-	 */
-	RequestMessage(RequestMessageType type, String sessionId, String token, String clientBuild, Payload payload)
+	static Notifications deserialize(String json)
 	{
-		super(sessionId, clientBuild, payload);
-		
-		this.type = type;
-		this.token = token;
+		return serializer.fromJson(json, Notifications.class); 
 	}
 	
-	/**
-	 * Get the token.
-	 * @return The token
-	 */
-	String getToken()
+	private ArrayList<Notification> notifications;
+	
+	Notifications(ArrayList<Notification> notifications)
 	{
-		return token;
+		this.notifications = notifications;
+	}
+	
+	Notifications(Notification notification)
+	{
+		this.notifications = new ArrayList<Notification>();
+		this.notifications.add(notification);
 	}
 
-	/**
-	 * Get the type of the request message.
-	 * @return The type of the request message.
-	 */
-	RequestMessageType getType()
+	ArrayList<Notification> getNotifications()
 	{
-		return type;
+		return notifications;
+	}
+	
+	String serialize()
+	{
+		return serializer.toJson(this);
 	}
 }

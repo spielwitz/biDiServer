@@ -41,16 +41,44 @@ public class User extends FileBasedSerializableEntity
 	
 	private static final String[] RESERVED_USER_NAMES = new String[] {ACTIVATION_USER_ID, ADMIN_USER_ID};
 	
+	/**
+	 * Check if a user ID complies to the rules.
+	 * @param userId The user ID
+	 * @return True, if the user ID is between 1 and 255 characters long, is a valid file name, and is not a reserved ID
+	 */
+	public static boolean isUserIdValid(String userId)
+	{
+		return !isUserIdReserved(userId) &&
+			   ServerUtils.checkFileName(userId) == FileNameCheck.Ok;
+	}
+	
+	static boolean isUserIdReserved(String userId)
+	{
+		return Arrays.stream(RESERVED_USER_NAMES).anyMatch(n -> userId.contains(n));
+	}
+	
+	static User readFromFile(String fileName)
+	{
+		User user = (User) readFromFileInternal(fileName, User.class);
+		
+		if (user != null)
+		{
+			user.userPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(user.userPublicKey);
+		}
+		
+		return user;
+	}
 	private boolean active;
-	
 	private transient PublicKey userPublicKeyObject;
-	
 	private String id;
 	private String name;
-	private Hashtable<String,String> customData;
-	private String activationCode;
-	private String userPublicKey;
 
+	private Hashtable<String,String> customData;
+	
+	private String activationCode;
+	
+	private String userPublicKey;
+	
 	User(
 			String id,
 			String name,
@@ -80,6 +108,30 @@ public class User extends FileBasedSerializableEntity
 			this.userPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(this.userPublicKey);
 		}
 	}
+
+	/**
+	 * Get the custom data of the user. This is a set of key-value-pairs that can be used by custom clients and servers to add additional data to the user record, for example, an e-mail address.
+	 * @return Custom data as key-value pairs
+	 */
+	public Hashtable<String,String> getCustomData() {
+		return customData;
+	}
+
+	/**
+	 * Get the user ID.
+	 * @return The user ID
+	 */
+	public String getId() {
+		return id;
+	}
+
+	/**
+	 * Get the user name.
+	 * @return The user name
+	 */
+	public String getName() {
+		return name;
+	}
 	
 	/**
 	 * Get the public RSA key of the user.
@@ -99,41 +151,6 @@ public class User extends FileBasedSerializableEntity
 	}
 	
 	/**
-	 * Get the user ID.
-	 * @return The user ID
-	 */
-	public String getId() {
-		return id;
-	}
-
-	/**
-	 * Get the user name.
-	 * @return The user name
-	 */
-	public String getName() {
-		return name;
-	}
-
-	/**
-	 * Get the custom data of the user. This is a set of key-value-pairs that can be used by custom clients and servers to add additional data to the user record, for example, an e-mail address.
-	 * @return Custom data as key-value pairs
-	 */
-	public Hashtable<String,String> getCustomData() {
-		return customData;
-	}
-
-	/**
-	 * Check if a user ID complies to the rules.
-	 * @param userId The user ID
-	 * @return True, if the user ID is between 1 and 255 characters long, is a valid file name, and is not a reserved ID
-	 */
-	public static boolean isUserIdValid(String userId)
-	{
-		return !isUserIdReserved(userId) &&
-			   ServerUtils.checkFileName(userId) == FileNameCheck.Ok;
-	}
-	
-	/**
 	 * Creates a JSON string representation of the user
 	 */
 	public String toString()
@@ -141,45 +158,6 @@ public class User extends FileBasedSerializableEntity
 		return this.serialize();
 	}
 	
-	static User readFromFile(String fileName)
-	{
-		User user = (User) readFromFileInternal(fileName, User.class);
-		
-		if (user != null)
-		{
-			user.userPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(user.userPublicKey);
-		}
-		
-		return user;
-	}
-	
-	String getActivationCode() {
-		return activationCode;
-	}
-	
-	void setName(String name) {
-		this.name = name;
-	}
-
-	void setCustomData(Hashtable<String,String> customData) {
-		this.customData = customData;
-	}
-	
-	void setActivationCode(String activationCode) {
-		this.activationCode = activationCode;
-	}
-
-	void setUserPublicKey(String userPublicKey) 
-	{
-		this.userPublicKey = userPublicKey;
-		this.userPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(this.userPublicKey);
-	}
-	
-	void setActive(boolean active)
-	{
-		this.active = active;
-	}
-
 	void clearCredentials()
 	{
 		this.userPublicKey = null;
@@ -188,10 +166,32 @@ public class User extends FileBasedSerializableEntity
 		this.active = false;
 		this.activationCode = UUID.randomUUID().toString();
 	}
+
+	String getActivationCode() {
+		return activationCode;
+	}
 	
-	static boolean isUserIdReserved(String userId)
+	void setActivationCode(String activationCode) {
+		this.activationCode = activationCode;
+	}
+
+	void setActive(boolean active)
 	{
-		return Arrays.stream(RESERVED_USER_NAMES).anyMatch(n -> userId.contains(n));
+		this.active = active;
+	}
+	
+	void setCustomData(Hashtable<String,String> customData) {
+		this.customData = customData;
+	}
+
+	void setName(String name) {
+		this.name = name;
+	}
+	
+	void setUserPublicKey(String userPublicKey) 
+	{
+		this.userPublicKey = userPublicKey;
+		this.userPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(this.userPublicKey);
 	}
 
 }

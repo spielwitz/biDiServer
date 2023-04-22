@@ -19,10 +19,13 @@ package test.testServerAndClient;
 
 import java.util.ArrayList;
 
-import spielwitz.biDiServer.Notification;
-
 public interface IClientTesterCallback {
-	void onNotificationReceived(String userId, Notification notification);
+	void onNotificationReceived(
+			String userId,
+			String sender,
+			ArrayList<String> recipients,
+			long dateCreated,
+			Object payload);
 	void onConnectionStatusChanged(String userId, boolean connected);
 	void sendMessage(ArrayList<String> recipients, String message);
 }

@@ -48,18 +48,18 @@ class TextProperty
 	}
 
 	/**
-	 * Get the text resource key.
-	 * @return The text resource key
-	 */
-	String getKey() {
-		return key;
-	}
-
-	/**
 	 * Get the list of arguments.
 	 * @return The list of arguments
 	 */
 	Object[] getArgs() {
 		return args;
+	}
+
+	/**
+	 * Get the text resource key.
+	 * @return The text resource key
+	 */
+	String getKey() {
+		return key;
 	}
 }

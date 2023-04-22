@@ -6,19 +6,17 @@ From within the client, you call the method `pushNotification​(ArrayList<Strin
 
 From within the server, call method `pushNotification​(String sender, PayloadRequestMessagePushNotification payload)`. In the `payload` object instance of class [`PayloadRequestMessagePushNotification`](src/spielwitz/biDiServer/PayloadRequestMessagePushNotification.java), you define the recipients and the object that is pushed to the recipients.
 
-On client side, you have to implement method `onNotificationReceived(Notification notification)`. The method is called when a client receives a notification. The payload of the notification was  encrypted on the server with the public key of the user. To decrypt the payload, you have to use the private key of the user, which is contained in the client configuration. Then, you can tell by the class of the notification payload of which type the notification is, for example:
+On client side, you have to implement method `onNotificationReceived(String sender, ArrayList<String> recipients, long dateCreated, Object payload)`. The method is called when a client receives a notification. You can tell by the class of the notification payload of which type the notification is, for example:
 
 ```
 @Override
-public void onNotificationReceived(Notification notification)
+public void onNotificationReceived(String sender, ArrayList<String> recipients, long dateCreated, Object payload)
 {
-	Object payloadObject = notification.getPayloadObject(this.getConfig().getUserPrivateKeyObject());
-		
-	if (payloadObject.getClass() == PayloadNotificationNewEvaluation.class)
+	if (payload.getClass() == PayloadNotificationNewEvaluation.class)
 	{
 		[...]
 	}
-	else if (payloadObject.getClass() == [...]
+	else if (payload.getClass() == [...]
 ```
 [Back to overview](README.md)
 

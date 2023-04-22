@@ -40,19 +40,19 @@ class PayloadRequestMessageActivateUser extends PayloadMessageBase
 	}
 
 	/**
-	 * Get the user ID.
-	 * @return The user ID
-	 */
-	public String getUserId() {
-		return userId;
-	}
-
-	/**
 	 * Get the activation code.
 	 * @return The activation code
 	 */
 	public String getActivationCode() {
 		return activationCode;
+	}
+
+	/**
+	 * Get the user ID.
+	 * @return The user ID
+	 */
+	public String getUserId() {
+		return userId;
 	}
 
 	/**

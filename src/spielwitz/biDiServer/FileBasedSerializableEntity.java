@@ -38,12 +38,57 @@ abstract class FileBasedSerializableEntity
 	private static Gson serializer = new Gson();
 	
 	/**
-	 * Serialize an object.
-	 * @return The JSON representation of the object
+	 * Read an object from a file.
+	 * @param fileName The file name
+	 * @param c The class of the object
+	 * @return The object
 	 */
-	protected String serialize()
+	protected static Object readFromFileInternal(String fileName, Class<?> c)
 	{
-		return serializer.toJson(this);
+		Object obj = null;
+		
+		try (BufferedReader br = new BufferedReader(
+				new FileReader(new File(fileName))))
+		{
+			String json = br.readLine();
+			obj = deserialize(json, c);
+		} catch (Exception e)
+		{
+		}
+		
+		return obj;
+	}
+	
+	private static Object deserialize(String json, Class<?> c)
+	{
+		try
+		{
+			return serializer.fromJson(json, c);
+		} catch (Exception e)
+		{
+			return null;
+		}
+	}
+
+	/**
+	 * Compares two entities for equality.
+	 * @return True, if both entities have the same content
+	 */
+	@Override
+	public boolean equals(Object otherEntity)
+	{
+		if (otherEntity == null)
+		{
+			return false;
+		}
+		else if (this.getClass() != otherEntity.getClass())
+		{
+			return false;
+		}
+		else
+		{
+			return this.serialize().equals(((FileBasedSerializableEntity)otherEntity).serialize());
+		}
 	}
 	
 	/**
@@ -79,58 +124,13 @@ abstract class FileBasedSerializableEntity
 		
 		return success;
 	}
-
-	/**
-	 * Read an object from a file.
-	 * @param fileName The file name
-	 * @param c The class of the object
-	 * @return The object
-	 */
-	protected static Object readFromFileInternal(String fileName, Class<?> c)
-	{
-		Object obj = null;
-		
-		try (BufferedReader br = new BufferedReader(
-				new FileReader(new File(fileName))))
-		{
-			String json = br.readLine();
-			obj = deserialize(json, c);
-		} catch (Exception e)
-		{
-		}
-		
-		return obj;
-	}
-	
-	private static Object deserialize(String json, Class<?> c)
-	{
-		try
-		{
-			return serializer.fromJson(json, c);
-		} catch (Exception e)
-		{
-			return null;
-		}
-	}
 	
 	/**
-	 * Compares two entities for equality.
-	 * @return True, if both entities have the same content
+	 * Serialize an object.
+	 * @return The JSON representation of the object
 	 */
-	@Override
-	public boolean equals(Object otherEntity)
+	protected String serialize()
 	{
-		if (otherEntity == null)
-		{
-			return false;
-		}
-		else if (this.getClass() != otherEntity.getClass())
-		{
-			return false;
-		}
-		else
-		{
-			return this.serialize().equals(((FileBasedSerializableEntity)otherEntity).serialize());
-		}
+		return serializer.toJson(this);
 	}
 }

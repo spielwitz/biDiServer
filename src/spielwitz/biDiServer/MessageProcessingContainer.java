@@ -33,23 +33,23 @@ class MessageProcessingContainer
 		this.data = new Hashtable<String, Object>();
 	}
 
-	ResponseMessage getResponseMessage() {
-		return responseMessage;
-	}
-
-	void setResponseMessage(ResponseMessage responseMessage) {
-		this.responseMessage = responseMessage;
-	}
-
-	String getUserId() {
-		return userId;
+	Hashtable<String, Object> getData() {
+		return data;
 	}
 
 	RequestMessage getRequestMessage() {
 		return requestMessage;
 	}
 
-	Hashtable<String, Object> getData() {
-		return data;
+	ResponseMessage getResponseMessage() {
+		return responseMessage;
+	}
+
+	String getUserId() {
+		return userId;
+	}
+
+	void setResponseMessage(ResponseMessage responseMessage) {
+		this.responseMessage = responseMessage;
 	}
 }
