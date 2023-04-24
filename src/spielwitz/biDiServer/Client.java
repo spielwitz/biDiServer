@@ -154,10 +154,9 @@ public abstract class Client
 	 */
 	public void disconnect()
 	{
-		this.sendRequestMessage(RequestMessageType.DISCONNECT, null);
-		
 		if (this.notificationReceiverThread != null)
 		{
+			this.sendRequestMessage(RequestMessageType.DISCONNECT, null);
 			this.notificationReceiverThread.disconnect();
 		}
 		
