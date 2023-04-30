@@ -104,6 +104,15 @@ public abstract class Server
 	}
 
 	/**
+	 * Get the path to the server data folder
+	 * @return
+	 */
+	public String getPathToServerData()
+	{
+		return Paths.get(homeDir, FOLDER_NAME_ROOT).toString();
+	}
+	
+	/**
 	 * Start the server.
 	 */
 	public void start()
@@ -238,7 +247,7 @@ public abstract class Server
 	{
 		return config;
 	}
-	
+
 	/**
 	 * Get a data set.
 	 * @param id The ID of the data set
@@ -258,7 +267,7 @@ public abstract class Server
 			return null;
 		}
 	}
-
+	
 	/**
 	 * Get the information related to a data set.
 	 * @param id The ID of the data set
@@ -341,13 +350,13 @@ public abstract class Server
 	 * @return Null, is no migration is required. Or else, the new JSON representation of the data set payload after migration
 	 */
 	protected abstract JsonElement migrateDataSet(String className, JsonElement jsonElementBeforeMigration);
-	
+
 	/**
 	 * Update the server configuration file.
 	 * @param config Server configuration
 	 */
 	protected abstract void onConfigurationUpdated(ServerConfiguration config);
-
+	
 	/**
 	 * A request message of type CUSTOM was received at the server. Process your own logic here.
 	 * @param userId User ID
@@ -355,7 +364,7 @@ public abstract class Server
 	 * @return The response message info and the response message payload
 	 */
 	protected abstract Tuple<ResponseInfo,Object> onCustomRequestMessageReceived(String userId, Object payloadRequest);
-	
+
 	/**
 	 * Send a notification
 	 * @param sender Sender of the notification
@@ -385,7 +394,7 @@ public abstract class Server
 														user.getUserPublicKeyObject()));
 		}
 	}
-
+	
 	/**
 	 * Add or update a data set.
 	 * @param dataSet The data set
@@ -568,12 +577,12 @@ public abstract class Server
 			return ciphers;
 		}
 	}
-	
+
 	private Log getLog()
 	{
 		return log;
 	}
-
+	
 	private String getPathToNotificatiosFolder()
 	{
 		return Paths.get(homeDir, FOLDER_NAME_ROOT, FOLDER_NAME_NOTIFICATIONS).toString();
