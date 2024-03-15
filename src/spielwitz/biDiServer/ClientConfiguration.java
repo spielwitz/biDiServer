@@ -168,6 +168,15 @@ public class ClientConfiguration extends FileBasedSerializableEntity
 	}
 	
 	/**
+	 * Set the e-mail address of the server administrator.
+	 * @param The e-mail address of the server administrator
+	 */
+	public void setAdminEmail(String adminEmail)
+	{
+		this.adminEmail = adminEmail;
+	}
+	
+	/**
 	 * Set the server port.
 	 * @param port The server port.
 	 */
