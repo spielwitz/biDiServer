@@ -117,6 +117,15 @@ public class ClientConfiguration extends FileBasedSerializableEntity
 	public int getPort() {
 		return port;
 	}
+	
+	/**
+	 * Get the public RSA key of the server as a base64-encoded string.
+	 * @return The public RSA key of the server as a base64-encoded string
+	 */
+	public String getServerPublicKey()
+	{
+		return serverPublicKey;
+	}
 
 	/**
 	 * The public RSA key of the server.
