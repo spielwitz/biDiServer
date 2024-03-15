@@ -131,7 +131,13 @@ public class ClientConfiguration extends FileBasedSerializableEntity
 	 * The public RSA key of the server.
 	 * @return Public RSA key
 	 */
-	public PublicKey getServerPublicKeyObject() {
+	public PublicKey getServerPublicKeyObject() 
+	{
+		if (this.serverPublicKeyObject == null)
+		{
+			this.serverPublicKeyObject = CryptoLib.decodePublicKeyFromBase64(this.serverPublicKey);
+		}
+		
 		return serverPublicKeyObject;
 	}
 
@@ -163,8 +169,14 @@ public class ClientConfiguration extends FileBasedSerializableEntity
 	 * The private RSA key of the user.
 	 * @return Private RSA key
 	 */
-	public PrivateKey getUserPrivateKeyObject() {
-		return userPrivateKeyObject;
+	public PrivateKey getUserPrivateKeyObject() 
+	{
+		if (this.userPrivateKeyObject == null)
+		{
+			CryptoLib.decodePrivateKeyFromBase64(this.userPrivateKey);
+		}
+		
+		return this.userPrivateKeyObject;
 	}
 	
 	/**
