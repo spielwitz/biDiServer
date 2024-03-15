@@ -173,7 +173,7 @@ public class ClientConfiguration extends FileBasedSerializableEntity
 	{
 		if (this.userPrivateKeyObject == null)
 		{
-			CryptoLib.decodePrivateKeyFromBase64(this.userPrivateKey);
+			this.userPrivateKeyObject = CryptoLib.decodePrivateKeyFromBase64(this.userPrivateKey);
 		}
 		
 		return this.userPrivateKeyObject;
