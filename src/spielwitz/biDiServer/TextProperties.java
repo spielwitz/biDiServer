@@ -312,10 +312,10 @@ class TextProperties
 	}
 
 	/**
-	   * Server cannot be started on port {0}. The port might already be in use. Application terminated.
+	   * Server {0}:{1} cannot be started. The port might already be in use. Application terminated.
 	   */
-	static TextProperty ServerNotStarted(String arg0) {
-		return new TextProperty("ServerNotStarted", new String[] {arg0});
+	static TextProperty ServerNotStarted(String arg0, String arg1) {
+		return new TextProperty("ServerNotStarted", new String[] {arg0, arg1});
 	}
 
 	/**
@@ -326,10 +326,10 @@ class TextProperties
 	}
 
 	/**
-	   * Server started on port {0}
+	   * Server {0}:{1} started
 	   */
-	static TextProperty ServerStarted(String arg0) {
-		return new TextProperty("ServerStarted", new String[] {arg0});
+	static TextProperty ServerStarted(String arg0, String arg1) {
+		return new TextProperty("ServerStarted", new String[] {arg0, arg1});
 	}
 
 	/**
